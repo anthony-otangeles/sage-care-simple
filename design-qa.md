@@ -4,6 +4,9 @@
 - Initial implementation: `design/shift-checklist-implementation-v1.png`
 - Final implementation: `design/shift-checklist-implementation-v2.png`
 - Final full-view comparison: `design/shift-checklist-comparison-v2.jpg`
+- Functional Provider comparison: `design/functional-comparison.png`
+- Functional review queue: `design/functional-review-queue.png`
+- Functional DON and CNA homes: `design/functional-role-homes.png`
 - Viewport: 390 × 844
 - State: Shift home, initial state, 2 of 5 visits complete
 
@@ -53,13 +56,23 @@ No actionable P0, P1, or P2 differences remain.
 
 ## Functional and responsive checks
 
-- Started Mary Lou Smith’s visit and confirmed the Start control changed to Continue.
-- Opened the visit detail sheet and completed its primary action.
-- Switched among Shift, Residents, Messages, and More.
-- Verified resident search input and resident detail access.
-- Opened the note review sheet and approved the note with a success announcement.
-- Checked browser console: no errors.
-- Checked 320 × 700: no horizontal overflow, bottom navigation remains fixed, Start remains visible, and long content scrolls vertically.
+- Verified the Provider home retains the selected Option 2 visual hierarchy while the full-width responsive `Add an Encounter` action remains immediately visible.
+- Opened a queue containing three separate encounters needing review; signing one left the other two intact.
+- Started Mary Lou Smith’s scheduled encounter through Add an Encounter and confirmed the scheduled record was reused rather than duplicated.
+- Captured a mock encounter voice transcript, added an order, ended the visit, and confirmed it returned the review queue to three notes.
+- Verified `All`, `Needs review`, and `Done` note filtering plus full-document section verification and signing.
+- Sent typed and mock voice messages, started voice-call feedback, and opened a resident from the care-team thread.
+- Navigated the weekly schedule backward and forward and opened both resident and non-resident schedule rows.
+- Verified a context-aware Sage prompt response.
+- Switched from Provider to Director of Nursing, completed a team action, then switched to CNA and saved a voice-captured resident debrief.
+- Automated Chrome smoke check passed with no browser exceptions or console errors.
+- Checked 390 × 844 and 320 × 700: no page or task-region horizontal overflow; fixed navigation and vertical task scrolling remain intact.
+
+## Functional expansion visual pass
+
+The side-by-side Provider comparison preserves the selected SAGE mark, lavender context header, shift-progress hierarchy, calm chronological visit rows, mint Start control, and fixed four-item navigation. The only intentional first-screen change is the full-width mobile `Add an Encounter` action requested after option selection. It pushes the review strip below the initial fold, where it remains available through normal vertical scrolling.
+
+The multi-encounter queue uses one summary count, three explicit status filters with counts, and one row per resident encounter. The DON and CNA homes use the same spacing, typography, purple/mint tokens, resident imagery, and touch-target rules while presenting role-specific next actions. Visual review found no cropped content, broken cards, horizontal overflow, mismatched icon systems, or unreadable status labels.
 
 ## Follow-up polish
 

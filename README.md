@@ -1,6 +1,6 @@
 # SAGE Care Simple
 
-A standalone, mobile-first redesign of the SAGE care-monitoring experience. It turns a busy provider shift into one clear sequence: see what is next, start the visit, and handle the one note that needs review.
+A standalone, mobile-first redesign of the SAGE care-monitoring experience. It preserves the original Provider, Director of Nursing, and CNA workflows while turning each role’s day into a clear, guided sequence.
 
 ## Run locally
 
@@ -9,16 +9,31 @@ npm install
 npm run dev
 ```
 
-## Included prototype flows
+## Included functional flows
 
-- Shift checklist with progress and chronological visits
-- Start or continue the next visit
-- Visit detail sheets with realistic clinical context
-- Review and approve a drafted note
-- Resident search and resident detail access
-- Care-team message list
-- Simple profile, facility, settings, and help navigation
+- Role-aware Provider, Director of Nursing, and CNA home screens
+- Provider encounter list, start/continue, Add an Encounter, notes, voice capture, orders, and visit completion
+- Multi-encounter review queue with `All`, `Needs review`, and `Done` filters
+- Full encounter documents with section verification, text or voice revision requests, signing, and read-only completed notes
+- Resident search, situation summaries, vitals, care-team reports, timelines, and note history
+- Weekly schedule with previous/next week navigation and schedule creation
+- Team action assignment, concern flagging, and completion
+- CNA resident-by-resident assignments and guided voice debrief
+- Care-team and direct messages, typed or voice messages, call feedback, and resident links
+- Context-aware mock Sage assistant, profile preferences, role switching, and in-app help
+- Local persistence plus a data reset control
 - Responsive 390 × 844 mobile frame with a 320px small-screen fallback
+
+## Verify locally
+
+With the dev server open on port 5178 and Chrome remote debugging on port 9226:
+
+```bash
+npm run build
+npm run smoke
+```
+
+Use `APP_URL` or `CDP_ENDPOINT` to point the smoke test at different local ports.
 
 ## Design source and QA
 
