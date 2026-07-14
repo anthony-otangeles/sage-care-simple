@@ -178,7 +178,8 @@ Final targets require baseline measurement in the Test Environment.
 ## Demo credentials
 
 Provider email: `provider@sage.com`  
-Password: `password`
+Password: `password`  
+Two-factor code: any six digits
 
 These credentials are for the local/test prototype only and must never be reused for Production authentication.
 
