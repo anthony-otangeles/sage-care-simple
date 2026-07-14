@@ -125,6 +125,11 @@ assertion((await evaluate("document.querySelector('link[rel=icon]')?.getAttribut
 assertion(copy.includes("Forgot password?") && copy.includes("Sign in with Otangeles Notes+"), "Sign in offers password recovery and Otangeles Notes+");
 assertion(!copy.includes("Choose your SAGE role") && !copy.includes("Director of Nursing") && !copy.includes("Certified Nursing Assistant"), "Sign in does not expose other role personas");
 assertion(parseFloat(await evaluate("getComputedStyle(document.querySelector('.login-form input')).fontSize")) >= 16, "Mobile sign-in fields use at least 16px text to prevent browser focus zoom");
+await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 568, deviceScaleFactor: 1, mobile: true });
+await wait(180);
+assertion((await evaluate("(() => { const bar = document.querySelector('.custom-scrollbar.auth-scrollbar'); const rect = bar?.getBoundingClientRect(); return rect && rect.width === 4 && Math.round(rect.right) === innerWidth - 4 && bar.firstElementChild.getBoundingClientRect().height >= 36; })()")), "Overflowing authentication screens show the persistent app-rendered scrollbar");
+await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+await wait(180);
 await signIn("provider@sage.com", "wrong-password");
 assertion((await text()).includes("Email or password is incorrect."), "Invalid credentials do not open a SAGE session");
 await clickText("Forgot password?", true);
@@ -199,7 +204,7 @@ await clickSelector('[data-workspace-facility="all"]', "All Facilities card");
 const dimensions = await evaluate(`({ viewport: [innerWidth, innerHeight], bodyWidth: document.body.scrollWidth, appWidth: document.querySelector(".mobile-prototype").clientWidth })`);
 assertion(dimensions.viewport[0] === 390 && dimensions.bodyWidth === 390 && dimensions.appWidth === 390, "390px mobile layout has no page-level horizontal overflow");
 assertion((await evaluate("document.querySelector('.app-header').getBoundingClientRect().height")) === 70, "Primary header uses the compact 70px treatment");
-assertion((await evaluate("(() => { const region = document.querySelector('.app-scroll-region'); return getComputedStyle(region).scrollbarWidth === 'thin' && region.scrollHeight > region.clientHeight; })()")), "Long app pages expose a thin scrollbar at the right edge");
+assertion((await evaluate("(() => { const region = document.querySelector('.app-scroll-region'); const bar = document.querySelector('.custom-scrollbar.app-scrollbar'); const rect = bar?.getBoundingClientRect(); return region.scrollHeight > region.clientHeight && rect && rect.width === 4 && Math.round(rect.right) === innerWidth - 4 && bar.firstElementChild.getBoundingClientRect().height >= 36; })()")), "Long app pages expose a persistent app-rendered scrollbar at the right edge");
 const scrollViewportBefore = await evaluate("(() => { const rect = document.querySelector('.app-scroll-region').getBoundingClientRect(); return { top: rect.top, bottom: rect.bottom, height: rect.height }; })()");
 await evaluate("document.querySelector('.app-scroll-region').scrollTop = 420");
 await wait(220);
@@ -342,6 +347,7 @@ assertion(scribeWaitAlignment.display === "flex" && scribeWaitAlignment.iconHeig
 await clickSelector('[aria-label="Go back"]', "review queue Back button");
 await clickText("Add an Encounter", true);
 assertion((await evaluate("document.querySelector('.resident-search-field input')?.placeholder")) === "Search by name, room, or facility", "Add Encounter uses a resident search field instead of a resident dropdown");
+assertion((await evaluate("(() => { const sheet = document.querySelector('.sheet'); const bar = document.querySelector('.sheet-scrollbar'); return sheet.scrollHeight > sheet.clientHeight && bar?.getBoundingClientRect().width === 4 && bar.firstElementChild.getBoundingClientRect().height >= 36; })()")), "Long sheets show the persistent app-rendered scrollbar");
 await setControl('.resident-search-field input', "Beatrice");
 assertion((await evaluate("document.querySelectorAll('.resident-search-results button').length")) === 1, "Resident search narrows the available residents");
 await clickSelector('.resident-search-results button', "Beatrice resident search result");

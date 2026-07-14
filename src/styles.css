@@ -158,9 +158,7 @@ input:focus-visible {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-color: rgba(105, 99, 125, 0.58) transparent;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 
 .app-scroll-region.nav-hidden {
@@ -172,16 +170,29 @@ input:focus-visible {
 }
 
 .app-scroll-region::-webkit-scrollbar {
+  display: none;
+}
+
+.custom-scrollbar {
+  position: absolute;
+  top: 8px;
+  right: 4px;
+  bottom: 8px;
+  z-index: 45;
   width: 4px;
-}
-
-.app-scroll-region::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.app-scroll-region::-webkit-scrollbar-thumb {
-  background: rgba(105, 99, 125, 0.58);
+  pointer-events: none;
+  background: rgba(28, 25, 46, 0.18);
   border-radius: 999px;
+}
+
+.custom-scrollbar > span {
+  position: absolute;
+  inset: 0 0 auto;
+  display: block;
+  width: 100%;
+  background: #6842a5;
+  border-radius: inherit;
+  will-change: transform;
 }
 
 .screen-content {
@@ -1211,17 +1222,31 @@ input:focus-visible {
   background: rgba(17, 19, 49, 0.32);
 }
 
+.sheet-frame {
+  position: relative;
+  display: flex;
+  width: 100%;
+  max-height: 76dvh;
+}
+
 .sheet {
   width: 100%;
-  max-height: 76%;
+  max-height: 76dvh;
   padding: 8px 18px 20px;
   overflow-y: auto;
   background: var(--surface);
   border-radius: 18px 18px 12px 12px;
   box-shadow: 0 18px 50px rgba(17, 19, 49, 0.2);
-  scrollbar-color: rgba(105, 99, 125, 0.58) transparent;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+}
+
+.sheet::-webkit-scrollbar {
+  display: none;
+}
+
+.sheet-scrollbar {
+  right: 5px;
+  z-index: 2;
 }
 
 .sheet-handle {
@@ -6252,27 +6277,15 @@ select,
 }
 
 .signed-out-app {
+  width: 100%;
+  height: 100%;
   overflow-y: auto;
   background: linear-gradient(180deg, #f8f7ff 0%, #ffffff 42%);
-  scrollbar-color: rgba(105, 99, 125, 0.58) transparent;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 
-.signed-out-app::-webkit-scrollbar,
-.sheet::-webkit-scrollbar {
-  width: 4px;
-}
-
-.signed-out-app::-webkit-scrollbar-track,
-.sheet::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.signed-out-app::-webkit-scrollbar-thumb,
-.sheet::-webkit-scrollbar-thumb {
-  background: rgba(105, 99, 125, 0.58);
-  border-radius: 999px;
+.signed-out-app::-webkit-scrollbar {
+  display: none;
 }
 
 .signed-out-screen {
@@ -7024,9 +7037,14 @@ select,
   }
 
   .sheet {
-    width: min(620px, 100%);
+    width: 100%;
     max-height: min(82dvh, 760px);
     border-radius: 18px;
+  }
+
+  .sheet-frame {
+    width: min(620px, 100%);
+    max-height: min(82dvh, 760px);
   }
 
   .toast {

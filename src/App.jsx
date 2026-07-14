@@ -207,6 +207,68 @@ function SageMark() {
   );
 }
 
+function ScrollIndicator({ targetRef, className = "" }) {
+  const [thumb, setThumb] = useState({ visible: false, height: 0, offset: 0 });
+
+  useEffect(() => {
+    const target = targetRef.current;
+    if (!target) return undefined;
+    let animationFrame = 0;
+
+    const update = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        const viewportHeight = target.clientHeight;
+        const scrollHeight = target.scrollHeight;
+        const maxScroll = Math.max(0, scrollHeight - viewportHeight);
+        if (viewportHeight <= 0 || maxScroll <= 2) {
+          setThumb((current) => current.visible ? { visible: false, height: 0, offset: 0 } : current);
+          return;
+        }
+
+        const trackHeight = Math.max(0, viewportHeight - 16);
+        const height = Math.max(36, Math.round(trackHeight * (viewportHeight / scrollHeight)));
+        const availableTravel = Math.max(0, trackHeight - height);
+        const scrollTop = Math.min(maxScroll, Math.max(0, target.scrollTop));
+        const offset = Math.round((scrollTop / maxScroll) * availableTravel);
+        setThumb((current) => current.visible && current.height === height && current.offset === offset
+          ? current
+          : { visible: true, height, offset });
+      });
+    };
+
+    const resizeObserver = new ResizeObserver(update);
+    const observeSize = () => {
+      resizeObserver.disconnect();
+      resizeObserver.observe(target);
+      [...target.children].forEach((child) => resizeObserver.observe(child));
+    };
+    const mutationObserver = new MutationObserver(() => {
+      observeSize();
+      update();
+    });
+
+    target.addEventListener("scroll", update, { passive: true });
+    mutationObserver.observe(target, { attributes: true, childList: true, characterData: true, subtree: true });
+    window.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
+    observeSize();
+    update();
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      target.removeEventListener("scroll", update);
+      mutationObserver.disconnect();
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+    };
+  }, [targetRef]);
+
+  if (!thumb.visible) return null;
+  return <div className={`custom-scrollbar ${className}`.trim()} aria-hidden="true"><span style={{ height: `${thumb.height}px`, transform: `translate3d(0, ${thumb.offset}px, 0)` }} /></div>;
+}
+
 function AppHeader({ role, module, hidden, onBack, onAskSage }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -1228,6 +1290,7 @@ function HelpView() {
 }
 
 function SignedOutScreen({ onSignIn, fontSize, twoFactorSettings }) {
+  const scrollRef = useRef(null);
   const [mode, setMode] = useState("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -1306,12 +1369,13 @@ function SignedOutScreen({ onSignIn, fontSize, twoFactorSettings }) {
     content = <><div className="signed-out-copy"><span className="eyebrow">Welcome back</span><h1>Sign in to SAGE</h1><p>Enter your account details to securely access your assigned residents and work.</p></div><form className="login-form" onSubmit={submitCredentials}><label>Email address<span className="login-input"><Mail /><input autoFocus type="email" autoComplete="username" value={email} onChange={(event) => { setEmail(event.target.value); setError(""); }} placeholder="name@sage.com" required /></span></label><label>Password<span className="login-input"><LockKeyhole /><input type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} placeholder="Enter your password" required /><button className="password-visibility" type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff /> : <Eye />}</button></span></label><button className="forgot-link" type="button" onClick={() => changeMode("forgot")}>Forgot password?</button>{error && <p className="login-error" role="alert">{error}</p>}<button className="login-primary" type="submit">Sign in</button><div className="auth-divider"><span>or</span></div><button className="notes-plus-button" type="button" onClick={() => changeMode("notes-plus")}><FileText />Sign in with Otangeles Notes+</button></form></>;
   }
   return (
-    <main className="prototype-stage"><div className={`mobile-prototype signed-out-app font-size-${fontSize}`}><section className="signed-out-screen"><div className="signed-out-brand"><SageMark /><span>Care Simple</span></div>{content}<small className="signed-out-note">Secure access for authorized SAGE care-team members</small></section></div></main>
+    <main className="prototype-stage"><div className={`mobile-prototype signed-out-shell font-size-${fontSize}`}><div ref={scrollRef} className="signed-out-app"><section className="signed-out-screen"><div className="signed-out-brand"><SageMark /><span>Care Simple</span></div>{content}<small className="signed-out-note">Secure access for authorized SAGE care-team members</small></section></div><ScrollIndicator targetRef={scrollRef} className="auth-scrollbar" /></div></main>
   );
 }
 
 function Sheet({ title, children, onClose }) {
-  return <div className="sheet-scrim" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div className="sheet-handle" /><header><h2 id="sheet-title">{title}</h2><button type="button" onClick={onClose} aria-label="Close"><X /></button></header>{children}</section></div>;
+  const scrollRef = useRef(null);
+  return <div className="sheet-scrim" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><div className="sheet-frame"><section ref={scrollRef} className="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div className="sheet-handle" /><header><h2 id="sheet-title">{title}</h2><button type="button" onClick={onClose} aria-label="Close"><X /></button></header>{children}</section><ScrollIndicator targetRef={scrollRef} className="sheet-scrollbar" /></div></div>;
 }
 
 export function App() {
@@ -1910,6 +1974,7 @@ export function App() {
         {!module && <FacilityScopeCards role={role} activeFacilityId={facilityId} encounters={encounters} location={providerLocation} onSelect={switchFacility} />}
         {module ? moduleContent : rootContent}
       </div>
+      <ScrollIndicator targetRef={scrollRegionRef} className="app-scrollbar" />
       {!module && <BottomNav role={role} activeTab={activeTab} hidden={bottomNavHidden} onChange={goToRootTab} />}
       {showReviewSignDock && <div className={`review-sign-dock${reviewChromeHidden ? " hidden" : ""}`}><button type="button" onClick={() => requestEncounterSignature(activeReviewEncounter)}><ShieldCheck aria-hidden="true" />Sign and Submit for billing</button></div>}
 
