@@ -82,9 +82,16 @@ async function setControl(selector, value) {
   await wait(80);
 }
 
+async function setSixDigitCode(rootSelector, code = "123456") {
+  assertion(/^\d{6}$/.test(code), `${code} is a six-digit test code`);
+  for (let index = 0; index < 6; index += 1) {
+    await setControl(`${rootSelector} input:nth-child(${index + 1})`, code[index]);
+  }
+}
+
 async function completeTwoFactor(code = "123456") {
   if (!(await text()).includes("Verify it’s you")) return;
-  await setControl('.two-factor-login-form input[autocomplete="one-time-code"]', code);
+  await setSixDigitCode(".two-factor-login-form .verification-code-fields", code);
   await clickText("Verify and continue", true);
 }
 
@@ -126,10 +133,11 @@ assertion((await text()).includes("Check your email") && (await text()).includes
 await clickText("Back to sign in", true);
 await signIn("provider@sage.com", "password", false);
 const providerTwoFactorCopy = (await text()).toLowerCase();
-assertion(providerTwoFactorCopy.includes("two-factor authentication") && providerTwoFactorCopy.includes("verify it’s you") && providerTwoFactorCopy.includes("any non-empty code is accepted"), "Valid Provider credentials open the two-factor verification step before the workspace");
+assertion(providerTwoFactorCopy.includes("two-factor authentication") && providerTwoFactorCopy.includes("verify it’s you") && providerTwoFactorCopy.includes("use any six digits"), "Valid Provider credentials open the six-digit two-factor verification step before the workspace");
+assertion((await evaluate("document.querySelectorAll('.two-factor-login-form .verification-code-fields input').length")) === 6 && (await evaluate("document.querySelector('.two-factor-login-form .login-primary').disabled")), "Provider verification uses six individual digit fields and stays disabled until complete");
 assertion(!(await text()).includes("Your shift"), "Provider workspace remains locked until two-factor verification is submitted");
-await completeTwoFactor("any-demo-code");
-assertion((await text()).includes("Your shift"), "Any non-empty prototype verification code completes Provider sign in");
+await completeTwoFactor("123456");
+assertion((await text()).includes("Your shift"), "Any six-digit prototype verification code completes Provider sign in");
 
 copy = await text();
 assertion(copy.includes("Your shift") && copy.includes("Add an Encounter"), "Provider home loads with a clear next action");
@@ -240,11 +248,24 @@ await clickText("Set up signature", true);
 assertion((await text()).includes("Provider signature") && (await text()).includes("Draw"), "Signature Settings opens without losing the encounter review");
 assertion((await text()).includes("Two-factor authentication") && (await text()).includes("Authenticator app") && (await text()).includes("On"), "Provider Settings shows the enabled two-factor authentication status");
 await clickText("Set up again", true);
-assertion((await text()).includes("SAGE-DEMO-HANNAH") && (await text()).includes("Prototype note: any non-empty code is accepted."), "Provider can open authenticator setup instructions from Settings");
-await setControl('.two-factor-settings .two-factor-code-input', "settings-demo-code");
-await clickText("Verify and enable", true);
-assertion((await text()).includes("Two-factor authentication enabled."), "Provider can complete two-factor setup with any non-empty prototype code");
-assertion((await evaluate("JSON.parse(localStorage.getItem('sage.simple.functional.v9.two-factor')).provider.enabled")) === true, "Provider two-factor setup persists locally for later sign-ins");
+assertion((await text()).includes("SAGE-DEMO-HANNAH") && (await text()).includes("Scan this QR code") && (await text()).includes("Prototype note: use any six digits."), "Provider can open dummy QR authenticator setup instructions from Settings");
+assertion((await evaluate("document.querySelector('.two-factor-settings .two-factor-qr img')?.getAttribute('src')")) === "/sage-2fa-qr.svg" && (await evaluate("document.querySelectorAll('.two-factor-settings .verification-code-fields input').length")) === 6, "Two-factor setup displays the dummy QR code and six individual digit fields");
+await setSixDigitCode(".two-factor-settings .verification-code-fields", "234567");
+await clickText("Verify and finish setup", true);
+assertion((await text()).includes("Two-factor authentication set up."), "Provider can complete QR-based two-factor setup with any six-digit prototype code");
+const savedTwoFactorKey = await evaluate("JSON.parse(localStorage.getItem('sage.simple.functional.v9.two-factor')).provider.setupKey");
+assertion(savedTwoFactorKey === "SAGE-DEMO-HANNAH", "Provider two-factor setup persists locally for later sign-ins");
+await clickText("Turn off 2FA", true);
+assertion((await text()).includes("Confirm before turning off 2FA") && (await evaluate("document.querySelectorAll('.two-factor-settings .verification-code-fields input').length")) === 6, "Turning off two-factor authentication requires a six-digit confirmation code");
+await setSixDigitCode(".two-factor-settings .verification-code-fields", "345678");
+await clickText("Verify and turn off", true);
+const disabledTwoFactor = await evaluate("JSON.parse(localStorage.getItem('sage.simple.functional.v9.two-factor')).provider");
+assertion((await text()).includes("Two-factor authentication turned off.") && disabledTwoFactor.enabled === false && disabledTwoFactor.configured === true && disabledTwoFactor.setupKey === savedTwoFactorKey, "Turning off two-factor authentication preserves the existing authenticator setup");
+await clickText("Turn on 2FA", true);
+assertion((await text()).includes("Your previous authenticator setup is still saved"), "Re-enabling two-factor authentication uses the previously configured authenticator");
+await setSixDigitCode(".two-factor-settings .verification-code-fields", "456789");
+await clickText("Verify and turn on", true);
+assertion((await text()).includes("Two-factor authentication turned on.") && (await evaluate("JSON.parse(localStorage.getItem('sage.simple.functional.v9.two-factor')).provider.enabled")) === true, "Provider can re-enable two-factor authentication with a six-digit code from the saved setup");
 await clickText("Save signature", true);
 assertion((await text()).includes("Draw your signature before saving."), "Draw signature requires a captured signature before saving");
 await clickText("Upload", true);
@@ -686,7 +707,7 @@ assertion(desktopLogin.viewport === 1440 && desktopLogin.body === 1440 && deskto
 await signIn("provider@sage.com", "password", false);
 const desktopTwoFactor = await evaluate(`(() => { const card = document.querySelector('.signed-out-screen').getBoundingClientRect(); return { copy: document.body.innerText, body: document.body.scrollWidth, width: Math.round(card.width), center: Math.round(card.top + card.height / 2) }; })()`);
 assertion(desktopTwoFactor.copy.includes("Verify it’s you") && desktopTwoFactor.body === 1440 && desktopTwoFactor.width <= 500 && Math.abs(desktopTwoFactor.center - 500) <= 2, "Desktop Provider login keeps the two-factor verification step centered and overflow-free");
-await completeTwoFactor("desktop-demo-code");
+await completeTwoFactor("654321");
 const palette = await evaluate(`(() => { const style = getComputedStyle(document.documentElement); return [style.getPropertyValue('--ink').trim(), style.getPropertyValue('--mint').trim(), style.getPropertyValue('--purple').trim()]; })()`);
 assertion(JSON.stringify(palette) === JSON.stringify(["#1c192e", "#00c9a7", "#845ec2"]), "The app exposes the approved navy, mint, and purple brand palette");
 const desktopShell = await evaluate(`(() => { const nav = document.querySelector('.desktop-nav'); const header = document.querySelector('.app-header'); const region = document.querySelector('.app-scroll-region'); return { navDisplay: getComputedStyle(nav).display, navWidth: Math.round(nav.getBoundingClientRect().width), headerLeft: Math.round(header.getBoundingClientRect().left), regionLeft: Math.round(region.getBoundingClientRect().left), bottomDisplay: getComputedStyle(document.querySelector('.bottom-nav')).display, facilities: document.querySelectorAll('.facility-scope-card').length, shiftColumns: getComputedStyle(document.querySelector('.facility-shift-list')).gridTemplateColumns.split(' ').length, body: document.body.scrollWidth }; })()`);
@@ -696,7 +717,7 @@ await clickSelector('.queue-list > button:not(:disabled)', "first desktop-ready 
 const desktopReviewHeader = await evaluate(`(() => { const header = document.querySelector('.task-header'); const status = document.querySelector('.task-header-status'); const headerRect = header.getBoundingClientRect(); const statusRect = status.getBoundingClientRect(); return { text: status.innerText, headerLeft: Math.round(headerRect.left), headerRight: Math.round(headerRect.right), statusRight: Math.round(statusRect.right), viewport: innerWidth }; })()`);
 assertion(desktopReviewHeader.text === "Needs review" && desktopReviewHeader.headerLeft === 248 && desktopReviewHeader.headerRight === desktopReviewHeader.viewport && desktopReviewHeader.statusRight <= desktopReviewHeader.viewport, "Desktop Review and Sign keeps the Needs review status visible on the right side of the aligned header");
 await evaluate("document.querySelector('.app-scroll-region').scrollTop = 420");
-await wait(220);
+await wait(350);
 const hiddenDesktopReviewChrome = await evaluate(`(() => { const header = document.querySelector('.task-header'); const dock = document.querySelector('.review-sign-dock'); const region = document.querySelector('.app-scroll-region').getBoundingClientRect(); return { header: header.classList.contains('hidden'), headerOpacity: getComputedStyle(header).opacity, dock: dock.classList.contains('hidden'), dockOpacity: getComputedStyle(dock).opacity, regionTop: Math.round(region.top), regionBottom: Math.round(region.bottom), viewport: innerHeight }; })()`);
 assertion(hiddenDesktopReviewChrome.header && hiddenDesktopReviewChrome.headerOpacity === "0" && hiddenDesktopReviewChrome.dock && hiddenDesktopReviewChrome.dockOpacity === "0" && hiddenDesktopReviewChrome.regionTop === 0 && hiddenDesktopReviewChrome.regionBottom === hiddenDesktopReviewChrome.viewport, "Desktop Review and Sign hides both chrome regions and expands content to the viewport while scrolling down");
 await evaluate("document.querySelector('.app-scroll-region').scrollTop = 0");

@@ -113,7 +113,8 @@ Production Environment issues deliver the matching capability against production
 - React/Vite single-page application.
 - Seeded data and browser-local persistence.
 - Authentication is session-only and resets on full page load.
-- The Provider demo account uses a persisted authenticator-app 2FA setting; any non-empty verification code is accepted by the prototype after a valid first factor.
+- The Provider demo account uses a persisted authenticator-app 2FA setting. Login verification uses six individual numeric fields and accepts any complete six-digit code after a valid first factor.
+- Provider Settings displays a clearly labeled dummy QR code for authenticator enrollment. A six-digit code confirms setup, turning 2FA off, and turning it on again; disabling preserves the previous authenticator configuration so re-enrollment is not required.
 - Provider location is fixed to Brickyard Elkhart.
 - Notes+, Ask SAGE, recording, Scribe, calls, transcription, and billing are simulated.
 
@@ -131,6 +132,7 @@ Production Environment issues deliver the matching capability against production
 - SAGE Summary and Ask SAGE are reading aids; the complete note remains the signed source of truth.
 - Unsupported, stale, or unavailable clinical context must be disclosed rather than invented.
 - Production authorization must be enforced server-side for Provider role, assigned facilities, residents, notes, messages, calls, and schedule data.
+- Production 2FA must replace the dummy QR code and permissive code acceptance with an approved identity-provider or standards-compliant TOTP flow, including protected secrets, replay and rate-limit controls, recovery, reset, audit, and secure disable/re-enable verification.
 - Call recording and transcription require approved consent, retention, access, and deletion policies.
 - Billing submission and revisions require immutable audit history and idempotent state transitions.
 

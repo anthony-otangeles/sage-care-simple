@@ -84,7 +84,7 @@ const initialProfileFields = {
   cna: { firstName: "Nina", lastName: "Alvarez" },
 };
 const initialTwoFactorSettings = {
-  provider: { enabled: true, method: "Authenticator app", savedAt: "Demo account default" },
+  provider: { enabled: true, configured: true, method: "Authenticator app", setupKey: "SAGE-DEMO-HANNAH", savedAt: "Demo account default" },
 };
 const residentStatusRank = { Declining: 0, Watchful: 1, "New admission": 2, Stable: 3 };
 const deviationSeverityRank = { Urgent: 0, High: 1, Moderate: 2, Mild: 3 };
@@ -1102,31 +1102,89 @@ function ProviderSignatureSetup({ signature, providerName, onSave, onRemove }) {
   );
 }
 
+function SixDigitCodeInput({ value, onChange, autoFocus = false, label = "Six-digit verification code" }) {
+  const inputRefs = useRef([]);
+  const digits = Array.from({ length: 6 }, (_, index) => value[index] ?? "");
+
+  function replaceDigit(index, rawValue) {
+    const numeric = rawValue.replace(/\D/g, "");
+    if (numeric.length > 1) {
+      const nextDigits = [...digits];
+      numeric.slice(0, 6 - index).split("").forEach((digit, offset) => { nextDigits[index + offset] = digit; });
+      onChange(nextDigits.join(""));
+      inputRefs.current[Math.min(index + numeric.length, 5)]?.focus();
+      return;
+    }
+    const nextDigits = [...digits];
+    if (!numeric) nextDigits.fill("", index);
+    else nextDigits[index] = numeric;
+    onChange(nextDigits.join(""));
+    if (numeric && index < 5) inputRefs.current[index + 1]?.focus();
+  }
+
+  function handleKeyDown(index, event) {
+    if (event.key === "Backspace" && !digits[index] && index > 0) {
+      const nextDigits = [...digits];
+      nextDigits[index - 1] = "";
+      onChange(nextDigits.join(""));
+      inputRefs.current[index - 1]?.focus();
+    }
+    if (event.key === "ArrowLeft" && index > 0) inputRefs.current[index - 1]?.focus();
+    if (event.key === "ArrowRight" && index < 5) inputRefs.current[index + 1]?.focus();
+  }
+
+  function handlePaste(event) {
+    const numeric = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!numeric) return;
+    event.preventDefault();
+    onChange(numeric);
+    inputRefs.current[Math.min(numeric.length, 5)]?.focus();
+  }
+
+  return <div className="verification-code-fields" role="group" aria-label={label}>{digits.map((digit, index) => <input key={index} ref={(element) => { inputRefs.current[index] = element; }} aria-label={`Digit ${index + 1} of 6`} autoFocus={autoFocus && index === 0} autoComplete={index === 0 ? "one-time-code" : "off"} inputMode="numeric" pattern="[0-9]*" maxLength={1} value={digit} onChange={(event) => replaceDigit(index, event.target.value)} onKeyDown={(event) => handleKeyDown(index, event)} onPaste={handlePaste} />)}</div>;
+}
+
 function ProviderTwoFactorSetup({ config, onSave }) {
-  const [setupOpen, setSetupOpen] = useState(false);
+  const [action, setAction] = useState(null);
   const [code, setCode] = useState("");
+  const setupKey = config?.setupKey ?? "SAGE-DEMO-HANNAH";
+  const validCode = /^\d{6}$/.test(code);
 
   function closeSetup() {
-    setSetupOpen(false);
+    setAction(null);
     setCode("");
   }
 
-  function confirmSetup() {
-    if (!code.trim()) return;
-    onSave({ enabled: true, method: "Authenticator app", savedAt: "Today · now" });
+  function beginAction(nextAction) {
+    setAction(nextAction);
+    setCode("");
+  }
+
+  function confirmAction() {
+    if (!validCode) return;
+    if (action === "disable") {
+      onSave({ ...config, enabled: false, configured: true, setupKey }, "Two-factor authentication turned off.");
+    } else if (action === "enable") {
+      onSave({ ...config, enabled: true, configured: true, setupKey }, "Two-factor authentication turned on.");
+    } else {
+      onSave({ enabled: true, configured: true, method: "Authenticator app", setupKey, savedAt: "Today · now" }, "Two-factor authentication set up.");
+    }
     closeSetup();
   }
 
   return (
     <section className="settings-section two-factor-settings">
       <div className="settings-title-row"><span><h2>Two-factor authentication</h2><p>Add an extra verification step whenever you sign in.</p></span><ShieldCheck /></div>
-      <div className={`two-factor-status${config?.enabled ? " enabled" : ""}`}><span><strong>{config?.enabled ? "Enabled" : "Not set up"}</strong><small>{config?.enabled ? `${config.method} · ${config.savedAt}` : "Use an authenticator app to protect this account."}</small></span><b>{config?.enabled ? "On" : "Off"}</b></div>
-      {!setupOpen && <button className="primary-wide two-factor-setup-button" type="button" onClick={() => setSetupOpen(true)}><ShieldCheck />{config?.enabled ? "Set up again" : "Set up 2FA"}</button>}
-      {setupOpen && <div className="two-factor-setup-panel">
-        <ol><li>Open your authenticator app.</li><li>Add SAGE with setup key <code>SAGE-DEMO-HANNAH</code>.</li><li>Enter the code shown by the app.</li></ol>
-        <label>Verification code<input className="two-factor-code-input" autoFocus autoComplete="one-time-code" inputMode="numeric" value={code} onChange={(event) => setCode(event.target.value)} placeholder="Enter any code" /></label>
-        <p>Prototype note: any non-empty code is accepted.</p>
-        <div className="two-factor-setup-actions"><button className="primary-wide" type="button" disabled={!code.trim()} onClick={confirmSetup}><Check />Verify and enable</button><button type="button" onClick={closeSetup}>Cancel</button></div>
+      <div className={`two-factor-status${config?.enabled ? " enabled" : ""}`}><span><strong>{config?.enabled ? "Enabled" : config?.configured ? "Turned off" : "Not set up"}</strong><small>{config?.enabled ? `${config.method} · ${config.savedAt}` : config?.configured ? "Your authenticator setup is saved for when you turn 2FA on again." : "Scan a QR code with your authenticator app to begin."}</small></span><b>{config?.enabled ? "On" : "Off"}</b></div>
+      {!action && <div className="two-factor-manage-actions">{config?.enabled
+        ? <><button className="primary-wide two-factor-setup-button" type="button" onClick={() => beginAction("setup")}><ShieldCheck />Set up again</button><button className="two-factor-disable-button" type="button" onClick={() => beginAction("disable")}>Turn off 2FA</button></>
+        : <><button className="primary-wide two-factor-setup-button" type="button" onClick={() => beginAction(config?.configured ? "enable" : "setup")}><ShieldCheck />{config?.configured ? "Turn on 2FA" : "Set up 2FA"}</button>{config?.configured && <button className="two-factor-secondary-button" type="button" onClick={() => beginAction("setup")}>Set up again</button>}</>}
+      </div>}
+      {action && <div className="two-factor-setup-panel">
+        {action === "setup" ? <><div className="two-factor-qr"><img src="/sage-2fa-qr.svg" alt="Dummy QR code for SAGE authenticator setup" /><span><strong>Scan this QR code</strong><small>Open your authenticator app and add a new account.</small></span></div><ol><li>Scan the dummy QR code with your authenticator app.</li><li>If needed, use setup key <code>{setupKey}</code>.</li><li>Enter the current six-digit code.</li></ol></> : <div className="two-factor-confirm-copy"><strong>{action === "disable" ? "Confirm before turning off 2FA" : "Confirm with your saved authenticator"}</strong><p>{action === "disable" ? "Enter a current code from your authenticator app to turn off two-factor authentication." : "Your previous authenticator setup is still saved. Enter its current code to turn 2FA on again."}</p></div>}
+        <label><span>Six-digit verification code</span><SixDigitCodeInput value={code} onChange={setCode} autoFocus label={`${action === "disable" ? "Turn off" : action === "enable" ? "Turn on" : "Set up"} two-factor authentication code`} /></label>
+        <p>Prototype note: use any six digits.</p>
+        <div className="two-factor-setup-actions"><button className="primary-wide" type="button" disabled={!validCode} onClick={confirmAction}><Check />{action === "disable" ? "Verify and turn off" : action === "enable" ? "Verify and turn on" : "Verify and finish setup"}</button><button type="button" onClick={closeSetup}>Cancel</button></div>
       </div>}
     </section>
   );
@@ -1230,14 +1288,14 @@ function SignedOutScreen({ onSignIn, fontSize, twoFactorSettings }) {
 
   function submitTwoFactor(event) {
     event.preventDefault();
-    if (!pendingRole || !verificationCode.trim()) return;
+    if (!pendingRole || !/^\d{6}$/.test(verificationCode)) return;
     setError("");
     onSignIn(pendingRole);
   }
 
   let content;
   if (mode === "two-factor") {
-    content = <><div className="signed-out-copy two-factor-copy"><span className="eyebrow">Two-factor authentication</span><h1>Verify it’s you</h1><p>Enter the code from your authenticator app for <strong>{email.trim()}</strong>.</p></div><form className="login-form two-factor-login-form" onSubmit={submitTwoFactor}><label>Verification code<span className="login-input"><ShieldCheck /><input autoFocus type="text" autoComplete="one-time-code" inputMode="numeric" value={verificationCode} onChange={(event) => { setVerificationCode(event.target.value); setError(""); }} placeholder="Enter any code" required /></span></label><p className="prototype-auth-note">Prototype note: any non-empty code is accepted.</p><button className="login-primary" type="submit">Verify and continue</button><button className="auth-back" type="button" onClick={() => changeMode(pendingSource === "notes-plus" ? "notes-plus" : "sign-in")}><ArrowLeft />Back to sign in</button></form></>;
+    content = <><div className="signed-out-copy two-factor-copy"><span className="eyebrow">Two-factor authentication</span><h1>Verify it’s you</h1><p>Enter the six-digit code from your authenticator app for <strong>{email.trim()}</strong>.</p></div><form className="login-form two-factor-login-form" onSubmit={submitTwoFactor}><label><span>Six-digit verification code</span><SixDigitCodeInput value={verificationCode} onChange={(nextCode) => { setVerificationCode(nextCode); setError(""); }} autoFocus /></label><p className="prototype-auth-note">Prototype note: use any six digits.</p><button className="login-primary" type="submit" disabled={!/^\d{6}$/.test(verificationCode)}>Verify and continue</button><button className="auth-back" type="button" onClick={() => changeMode(pendingSource === "notes-plus" ? "notes-plus" : "sign-in")}><ArrowLeft />Back to sign in</button></form></>;
   } else if (mode === "forgot") {
     content = resetSent
       ? <div className="auth-confirmation" role="status"><span><Mail /></span><h2>Check your email</h2><p>If a SAGE account exists for <strong>{email.trim()}</strong>, password reset instructions have been sent.</p><button className="login-primary" type="button" onClick={() => changeMode("sign-in")}>Back to sign in</button></div>
@@ -1817,7 +1875,7 @@ export function App() {
   }
   if (module?.type === "debrief" && !visibleAssignments.length) moduleContent = <section className="task-content"><div className="calm-empty"><CheckCircle2 /><strong>No residents assigned here</strong><span>Choose another facility to view CNA assignments.</span></div></section>;
   if (module?.type === "sage") moduleContent = <SageView messages={sageMessages} onSend={sageResponse} onPrompt={sageResponse} recording={recording?.kind === "sage" ? recording : null} onRecord={() => toggleRecording("sage", "assistant")} />;
-  if (module?.type === "settings") moduleContent = <SettingsView role={role} profileFields={profileFields[role] ?? initialProfileFields[role]} assignedFacilities={assignedFacilities} fontSize={fontSize} onFontSize={(nextSize) => { setFontSize(nextSize); toast(`Text size changed to ${nextSize}.`); }} notify={notify} onNotify={setNotify} signature={currentProviderSignature} onSaveSignature={saveProviderSignature} onRemoveSignature={removeProviderSignature} twoFactor={twoFactorSettings[role]} onSaveTwoFactor={(nextSettings) => { setTwoFactorSettings((items) => ({ ...items, [role]: nextSettings })); toast("Two-factor authentication enabled."); }} onSave={(nextFields) => { setProfileFields((items) => ({ ...items, [role]: nextFields })); toast("Profile saved."); }} />;
+  if (module?.type === "settings") moduleContent = <SettingsView role={role} profileFields={profileFields[role] ?? initialProfileFields[role]} assignedFacilities={assignedFacilities} fontSize={fontSize} onFontSize={(nextSize) => { setFontSize(nextSize); toast(`Text size changed to ${nextSize}.`); }} notify={notify} onNotify={setNotify} signature={currentProviderSignature} onSaveSignature={saveProviderSignature} onRemoveSignature={removeProviderSignature} twoFactor={twoFactorSettings[role]} onSaveTwoFactor={(nextSettings, message) => { setTwoFactorSettings((items) => ({ ...items, [role]: nextSettings })); toast(message); }} onSave={(nextFields) => { setProfileFields((items) => ({ ...items, [role]: nextFields })); toast("Profile saved."); }} />;
   if (module?.type === "help") moduleContent = <HelpView />;
 
   const showReviewSignDock = role === "provider" && activeReviewEncounter && reviewableStatuses.has(activeReviewEncounter.status) && !sheet;

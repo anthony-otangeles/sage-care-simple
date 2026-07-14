@@ -12,7 +12,7 @@ The product is mobile-first at 390 × 844, must remain usable at 320 px with Lar
 | AUTH-04 | Authentication | Provider is able to sign in through the simulated Otangeles Notes+ connection. |
 | AUTH-05 | Authentication | Provider is able to log out through a confirmation step. |
 | AUTH-06 | Authentication | Provider is required to authenticate again after a full page reload while persisted clinical data remains available. |
-| AUTH-07 | Authentication | Provider is able to complete two-factor verification with any non-empty prototype code after a valid first factor. |
+| AUTH-07 | Authentication | Provider is able to complete two-factor verification through six individual digit fields with any complete six-digit prototype code after a valid first factor. |
 | SHELL-01 | Application shell | Provider is able to navigate among Shift, Residents, Messages, and More. |
 | SHELL-02 | Application shell | Provider is able to use a persistent desktop navigation sidebar at widths of 900 px and above. |
 | SHELL-03 | Application shell | Provider is able to use the full mobile workflow at a 390 × 844 viewport without horizontal overflow. |
@@ -111,7 +111,7 @@ The product is mobile-first at 390 × 844, must remain usable at 320 px with Lar
 | SET-03 | Settings | Provider is able to enable or disable Push Notifications from a full-row target with a standard checkbox. |
 | SET-04 | Settings | Provider is able to choose and persist Small, Default, or Large app-wide text size. |
 | SET-05 | Settings | Provider is able to manage the saved Provider signature from Settings. |
-| SET-06 | Settings | Provider is able to set up or reconfigure authenticator-app two-factor authentication from Settings. |
+| SET-06 | Settings | Provider is able to scan a dummy QR code to set up authenticator-app 2FA and confirm setup, disable, or re-enable actions with a six-digit code while a disabled setup remains saved. |
 
 ## Environment-specific acceptance
 

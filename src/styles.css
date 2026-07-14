@@ -5070,12 +5070,123 @@ select,
   width: 18px;
 }
 
+.two-factor-manage-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 13px;
+}
+
+.two-factor-manage-actions .primary-wide {
+  margin-top: 0;
+}
+
+.two-factor-disable-button,
+.two-factor-secondary-button {
+  min-height: 50px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: calc(12px * var(--font-scale, 1));
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.two-factor-disable-button {
+  color: #97344a;
+  background: #fff5f6;
+  border: 1px solid #f2cbd2;
+}
+
+.two-factor-secondary-button {
+  color: var(--purple);
+  background: var(--purple-soft);
+  border: 1px solid #ded5fb;
+}
+
 .two-factor-setup-panel {
   display: grid;
   gap: 13px;
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid var(--border);
+}
+
+.two-factor-qr {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: center;
+  gap: 13px;
+  padding: 11px;
+  background: #f7f5fd;
+  border: 1px solid #e3dbf8;
+  border-radius: 11px;
+}
+
+.two-factor-qr img {
+  display: block;
+  width: 112px;
+  height: 112px;
+  padding: 6px;
+  background: #ffffff;
+  border: 1px solid #ddd5f5;
+  border-radius: 8px;
+}
+
+.two-factor-qr > span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.two-factor-qr strong,
+.two-factor-confirm-copy strong {
+  color: var(--ink);
+  font-size: calc(13px * var(--font-scale, 1));
+}
+
+.two-factor-qr small,
+.two-factor-confirm-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: calc(10px * var(--font-scale, 1));
+  line-height: 1.45;
+}
+
+.two-factor-confirm-copy {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  background: #f7f5fd;
+  border: 1px solid #e3dbf8;
+  border-radius: 10px;
+}
+
+.verification-code-fields {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.verification-code-fields input,
+.settings-section .verification-code-fields input {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0;
+  color: var(--ink);
+  background: #ffffff;
+  border: 1px solid #d9dce5;
+  border-radius: 9px;
+  font-size: calc(20px * var(--font-scale, 1));
+  font-weight: 750;
+  line-height: 1;
+  text-align: center;
+}
+
+.verification-code-fields input:focus-visible {
+  border-color: var(--purple);
+  outline: 3px solid rgba(132, 94, 194, 0.22);
+  outline-offset: 1px;
 }
 
 .two-factor-setup-panel ol {
@@ -6433,8 +6544,30 @@ select,
     padding-inline: 14px;
   }
 
-  .two-factor-setup-actions {
+  .two-factor-setup-actions,
+  .two-factor-manage-actions {
     grid-template-columns: 1fr;
+  }
+
+  .two-factor-qr {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 10px;
+    padding: 9px;
+  }
+
+  .two-factor-qr img {
+    width: 88px;
+    height: 88px;
+  }
+
+  .verification-code-fields {
+    gap: 5px;
+  }
+
+  .verification-code-fields input,
+  .settings-section .verification-code-fields input {
+    min-height: 48px;
+    font-size: calc(18px * var(--font-scale, 1));
   }
 
   .visit-main {
