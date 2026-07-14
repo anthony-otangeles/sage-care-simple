@@ -2,6 +2,18 @@
 
 A standalone, mobile-first redesign of the SAGE care-monitoring experience. It preserves the original Provider, Director of Nursing, and CNA workflows while turning each role’s day into a clear, guided sequence.
 
+## Prototype credentials
+
+These accounts are for the local prototype only. They do not provide access to a production SAGE environment.
+
+| User | Role | Email | Password | Two-factor code |
+| --- | --- | --- | --- | --- |
+| Dr. Hannah Cole | Provider | `provider@sage.com` | `password` | Any six digits, such as `123456` |
+| Jamie Patel, MSN, RN | Director of Nursing | `don@sage.com` | `password` | Not required by default |
+| Nina Alvarez | CNA | `cna@sage.com` | `password` | Not required by default |
+
+The simulated **Sign in with Otangeles Notes+** flow accepts any email listed above without asking for the shared password. Provider sign-in still proceeds to the prototype two-factor screen, where any complete six-digit code is accepted.
+
 ## Run locally
 
 ```bash
