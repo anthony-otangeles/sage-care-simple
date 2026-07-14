@@ -31,6 +31,10 @@ When implementing from a selected generated mock, treat that image as the source
 - Mobile toast notices move down to the visible bottom inset when the bottom navigation or Review and Sign dock hides instead of remaining suspended above released space.
 - The persistent scroll indicator stays inside the visible content rail and never overlays the app header, bottom navigation, or Review and Sign billing dock; it expands only after that chrome hides.
 - Facility-filtered task pages—including Encounter Notes, Schedule, Actions, Shift Debrief, and Ask SAGE—show the facility scope cards in place, and changing scope keeps the current task page open.
+- The primary header's SΛGE wordmark uses the same navy as the bottom navigation; authentication and desktop-sidebar brand treatments remain context-specific.
+- Encounter Notes uses only the Needs review and Done tab badges as workflow counters and does not repeat them in a summary banner.
+- Active voice recording in Request revision uses one dark-red inline Recording/Stop control and never shows the global recording banner at the same time.
+- Two-factor management actions, including Set up again, keep their labels on one line at supported mobile widths.
 - The workspace must support switching between all assigned facilities and an individual facility; the selection filters residents, encounters, messages, actions, assignments, and schedule data.
 - Review Encounter uses the original SAGE section names and exact available field values and descriptions, including the complete code-status label and description.
 - Modal forms must maintain clear vertical spacing between inputs and their primary action.

@@ -107,6 +107,10 @@ input:focus-visible {
   object-fit: contain;
 }
 
+.app-header:not(.task-header) .sage-mark {
+  color: var(--ink);
+}
+
 .sage-inverted-a {
   display: inline-block;
   margin-inline: -0.02em 0.01em;
@@ -2977,42 +2981,8 @@ button:disabled {
 
 /* Encounter review queue and full document */
 
-.queue-summary {
-  display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
-  align-items: center;
-  gap: 13px;
-  padding: 15px;
-  background: var(--mint-soft);
-  border: 1px solid #cbeadd;
-  border-radius: 12px;
-}
-
-.queue-count {
-  display: grid;
-  width: 56px;
-  height: 56px;
-  place-items: center;
-  color: #ffffff;
-  background: var(--mint);
-  border-radius: 50%;
-  font-size: calc(25px * var(--font-scale, 1));
-  font-weight: 800;
-}
-
-.queue-summary > span:last-child {
-  display: grid;
-  gap: 4px;
-}
-
-.queue-summary strong {
-  font-size: calc(15px * var(--font-scale, 1));
-}
-
-.queue-summary small {
-  color: var(--muted);
-  font-size: calc(12px * var(--font-scale, 1));
-  line-height: 1.35;
+.queue-filters {
+  margin-top: 0;
 }
 
 .queue-filters button {
@@ -5151,6 +5121,11 @@ select,
   margin-top: 0;
 }
 
+.two-factor-manage-actions button {
+  min-width: 0;
+  white-space: nowrap;
+}
+
 .two-factor-disable-button,
 .two-factor-secondary-button {
   min-height: 50px;
@@ -5995,6 +5970,46 @@ select,
 .record-revision {
   width: 100%;
   margin-top: 12px;
+}
+
+.record-revision > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.record-revision.recording {
+  min-height: 52px;
+  justify-content: space-between;
+  padding: 7px 8px 7px 14px;
+  color: #ffffff;
+  background: #9e2b42;
+  border-color: #9e2b42;
+  box-shadow: 0 8px 28px rgba(65, 12, 25, 0.25);
+}
+
+.record-revision.recording .revision-recording-state {
+  color: #ffffff;
+}
+
+.revision-recording-state i {
+  width: 9px;
+  height: 9px;
+  background: #ffffff;
+  border-radius: 50%;
+  animation: pulse 1s infinite alternate;
+}
+
+.record-revision .revision-recording-stop {
+  min-height: 38px;
+  padding: 6px 10px;
+  color: #9e2b42;
+  background: #ffffff;
+  border-radius: 8px;
+}
+
+.record-revision .revision-recording-stop svg {
+  width: 15px;
 }
 
 .recording-banner {

@@ -743,12 +743,9 @@ function ReviewQueue({ encounters, filter, onFilter, onOpen }) {
     if (filter === "needs") return reviewQueueStatuses.has(encounter.status);
     return encounter.status === "submitted-to-billing";
   }).sort((a, b) => Number(scribeStatuses.has(b.status)) - Number(scribeStatuses.has(a.status)));
-  const readyCount = encounters.filter((item) => reviewableStatuses.has(item.status)).length;
-  const scribeCount = encounters.filter((item) => scribeStatuses.has(item.status)).length;
-  const counts = { needs: readyCount + scribeCount, done: encounters.filter((item) => item.status === "submitted-to-billing").length };
+  const counts = { needs: encounters.filter((item) => reviewQueueStatuses.has(item.status)).length, done: encounters.filter((item) => item.status === "submitted-to-billing").length };
   return (
     <section className="task-content review-queue">
-      <div className="queue-summary"><span className="queue-count">{counts.needs}</span><span><strong>encounters in the review workflow</strong><small>{scribeCount ? `${readyCount} ready for you · ${scribeCount} sent to Scribe` : "Review one at a time. Your place is saved."}</small></span></div>
       <div className="segmented queue-filters" role="tablist">
         {["needs", "done"].map((id) => <button key={id} className={filter === id ? "active" : ""} type="button" onClick={() => onFilter(id)}>{id === "needs" ? "Needs review" : "Done"}<span>{counts[id]}</span></button>)}
       </div>
@@ -2027,11 +2024,12 @@ export function App() {
         );
       })()}
       {sheet?.type === "revision" && (() => {
+        const revisionRecording = recording?.kind === "revision";
         return (
           <Sheet title={`Request revision · ${sheet.sectionTitle}`} onClose={() => { setRecording(null); setSheet(null); }}>
             <p className="sheet-summary revision-summary">This request applies only to {sheet.sectionTitle}. The encounter will be locked while the Scribe makes the edit.</p>
             <div className="revision-mode"><button className={sheet.source === "text" ? "active" : ""} type="button" onClick={() => setSheet({ ...sheet, source: "text" })}>Type</button><button className={sheet.source === "voice" ? "active" : ""} type="button" onClick={() => setSheet({ ...sheet, source: "voice" })}>Voice</button></div>
-            {sheet.source === "voice" && <button className={`record-revision ${recording?.kind === "revision" ? "recording" : ""}`} type="button" onClick={() => toggleRecording("revision", sheet.encounterId)}>{recording?.kind === "revision" ? <Square /> : <Mic />}{recording?.kind === "revision" ? `Stop recording · ${recording.seconds}s` : sheet.duration ? `Record again · ${sheet.duration}s captured` : "Record revision request"}</button>}
+            {sheet.source === "voice" && <button className={`record-revision${revisionRecording ? " recording" : ""}`} type="button" onClick={() => toggleRecording("revision", sheet.encounterId)}>{revisionRecording ? <><span className="revision-recording-state"><i />Recording · {recording.seconds}s</span><span className="revision-recording-stop"><Square />Stop</span></> : <span className="revision-recording-state"><Mic />{sheet.duration ? `Record again · ${sheet.duration}s captured` : "Record revision request"}</span>}</button>}
             <label className="note-field"><span>{sheet.source === "voice" ? "Editable transcript" : "Revision request"}</span><textarea value={sheet.text} onChange={(event) => setSheet({ ...sheet, text: event.target.value })} placeholder="Explain exactly what should change…" /></label>
             <button className="sheet-primary" type="button" disabled={!sheet.text.trim()} onClick={addRevision}>Send revision to Scribe</button>
           </Sheet>
@@ -2075,7 +2073,7 @@ export function App() {
         });
         return <Sheet title={`${videoCall ? "Video" : "Voice"} call transcription`} onClose={() => setSheet(null)}><div className="call-transcription"><div className="call-transcription-head">{videoCall ? <Video /> : <Phone />}<span><strong>{videoCall ? "Video call" : "Voice call"}</strong><small>{new Set(transcript.map((turn) => turn.speakerId)).size} participants · {message.duration ?? message.time}</small></span></div><div className="transcript-lines">{transcript.map((turn, index) => { const mine = turn.speakerId === currentStaffId; return <article className={mine ? "mine" : ""} key={`${message.id}-${index}`}><header><strong>{mine ? "You" : turn.speakerName}</strong><small>{turn.offset}</small></header><p>{turn.text}</p></article>; })}</div><button className="sheet-primary" type="button" onClick={() => setSheet(null)}>Done</button></div></Sheet>;
       })()}
-      {recording && !["encounter", "sage"].includes(recording.kind) && <div className="recording-banner" role="status"><span><i />Recording · {recording.seconds}s</span><button type="button" onClick={stopRecording}><Square />Stop</button></div>}
+      {recording && !["encounter", "sage", "revision"].includes(recording.kind) && <div className="recording-banner" role="status"><span><i />Recording · {recording.seconds}s</span><button type="button" onClick={stopRecording}><Square />Stop</button></div>}
       {notice && <div className="toast" role="status"><Check />{notice}</div>}
     </div></main>
   );

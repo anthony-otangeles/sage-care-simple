@@ -148,6 +148,7 @@ assertion((await text()).includes("Your shift"), "Any six-digit prototype verifi
 copy = await text();
 assertion(copy.includes("Your shift") && copy.includes("Add an Encounter"), "Provider home loads with a clear next action");
 assertion((await evaluate("document.querySelector('.ask-sage-button')?.innerText.trim()")) === "Ask SAGE" && !(await evaluate("Boolean(document.querySelector('.profile-button'))")), "Primary header replaces the profile shortcut with a visible Ask SAGE action");
+assertion((await evaluate("getComputedStyle(document.querySelector('.app-header .sage-mark')).color === getComputedStyle(document.querySelector('.bottom-nav')).backgroundColor")), "The primary header SAGE wordmark uses the bottom-navigation navy");
 const shiftOverviewLayout = await evaluate("(() => { const overview = document.querySelector('.shift-overview'); const firstFacility = document.querySelector('.facility-shift-group'); const button = document.querySelector('.add-encounter-home'); return { background: getComputedStyle(overview).backgroundColor, separation: Math.round(firstFacility.getBoundingClientRect().top - overview.getBoundingClientRect().bottom), buttonHeight: Math.round(button.getBoundingClientRect().height) }; })()");
 assertion(shiftOverviewLayout.background === "rgb(255, 255, 255)" && shiftOverviewLayout.separation >= 26 && shiftOverviewLayout.buttonHeight >= 48, "Shift overview matches the supplied low-density white section and separates facility groups below it");
 assertion(copy.includes("5 notes need your review"), "Provider home shows the expanded multi-note review count");
@@ -232,7 +233,8 @@ assertion((await evaluate("document.querySelectorAll('.facility-scope-card').len
 await clickSelector('[data-workspace-facility="elkhart"]', "Encounter Notes Elkhart facility scope");
 assertion((await text()).includes("Encounter notes") && (await evaluate("document.querySelector('[data-workspace-facility=\"elkhart\"]')?.getAttribute('aria-pressed')")) === "true", "Changing facility keeps Encounter Notes open and updates its active scope");
 await clickSelector('[data-workspace-facility="all"]', "Encounter Notes All facilities scope");
-assertion((await evaluate("document.querySelector('.queue-count')?.innerText")) === "5", "Review queue shows five independent pending encounters");
+assertion(!(await evaluate("Boolean(document.querySelector('.queue-summary'))")), "Encounter Notes does not repeat tab counts in a workflow summary banner");
+assertion((await evaluate("document.querySelector('.queue-filters button.active span')?.innerText")) === "5", "The Needs review tab shows all five pending encounters");
 assertion((await evaluate("document.querySelectorAll('.queue-list > button').length")) === 5, "Needs Review filter lists every pending encounter");
 assertion((await evaluate("(() => { const list = document.querySelector('.queue-list'); const card = list.querySelector(':scope > button'); const listStyle = getComputedStyle(list); const cardStyle = getComputedStyle(card); return listStyle.display === 'grid' && parseFloat(listStyle.rowGap) >= 8 && cardStyle.backgroundColor === 'rgb(255, 255, 255)' && cardStyle.borderStyle === 'solid' && parseFloat(cardStyle.borderRadius) >= 10; })()")), "Needs review items are individually separated cards");
 assertion((await evaluate("document.querySelectorAll('.queue-filters button').length")) === 2, "Encounter notes only has Needs review and Done filters");
@@ -276,6 +278,7 @@ assertion((await text()).includes("Set up your signature first"), "Signing is bl
 await clickText("Set up signature", true);
 assertion((await text()).includes("Provider signature") && (await text()).includes("Draw"), "Signature Settings opens without losing the encounter review");
 assertion((await text()).includes("Two-factor authentication") && (await text()).includes("Authenticator app") && (await text()).includes("On"), "Provider Settings shows the enabled two-factor authentication status");
+assertion((await evaluate("(() => { const button = [...document.querySelectorAll('.two-factor-manage-actions button')].find(item => item.innerText.includes('Set up again')); const style = getComputedStyle(button); return style.whiteSpace === 'nowrap' && button.scrollWidth <= button.clientWidth; })()")), "The two-factor Set up again action stays on one line");
 await clickText("Set up again", true);
 assertion((await text()).includes("SAGE-DEMO-HANNAH") && (await text()).includes("Scan this QR code") && (await text()).includes("Prototype note: use any six digits."), "Provider can open dummy QR authenticator setup instructions from Settings");
 assertion((await evaluate("document.querySelector('.two-factor-settings .two-factor-qr img')?.getAttribute('src')")) === "/sage-2fa-qr.svg" && (await evaluate("document.querySelectorAll('.two-factor-settings .verification-code-fields input').length")) === 6, "Two-factor setup displays the dummy QR code and six individual digit fields");
@@ -333,7 +336,7 @@ await clickText("Sign and Submit for billing", true);
 const signatureConfirmation = await evaluate("document.querySelector('.signature-confirm')?.innerText");
 assertion(signatureConfirmation.includes("Dr. Hannah Cole") && signatureConfirmation.includes("Beatrice Holloway") && signatureConfirmation.includes("Acute") && signatureConfirmation.includes("16"), "Sign Encounter confirms signature, provider, resident, visit type, and section count");
 await clickText("Sign and submit for billing", true);
-assertion((await evaluate("document.querySelector('.queue-count')?.innerText")) === "4", "Signing one note leaves the other encounters in the queue");
+assertion((await evaluate("document.querySelector('.queue-filters button.active span')?.innerText")) === "4", "Signing one note leaves the other encounters in the Needs review tab");
 const signedEncounter = await evaluate("JSON.parse(localStorage.getItem('sage.simple.functional.v9.encounters')).find(item => item.id === 'review-beatrice')");
 assertion(signedEncounter.signedSignature.method === "type" && signedEncounter.signedSignature.providerName === "Dr. Hannah Cole" && Boolean(signedEncounter.signedSignature.signedAt), "Signing stores a provider signature snapshot and timestamp on the encounter");
 await clickText("Done", false);
@@ -351,6 +354,13 @@ assertion(!(await evaluate("Boolean(document.querySelector('.revision-section-se
 assertion(!(await evaluate("Boolean(document.querySelector('.review-sign-dock'))")), "Opening Request revision hides the docked billing action so it cannot cover the modal");
 const revisionModalAction = await evaluate("(() => { const action = document.querySelector('.sheet > .sheet-primary'); const sheet = document.querySelector('.sheet'); const actionRect = action.getBoundingClientRect(); const sheetRect = sheet.getBoundingClientRect(); return { actionBottom: Math.round(actionRect.bottom), sheetBottom: Math.round(sheetRect.bottom), viewport: innerHeight }; })()");
 assertion(revisionModalAction.actionBottom <= revisionModalAction.sheetBottom && revisionModalAction.actionBottom <= revisionModalAction.viewport, "The revision submit action is fully contained inside the visible modal");
+await clickSelector('.revision-mode button:last-child', "Voice revision mode");
+await clickSelector('.record-revision', "start inline revision recording");
+await wait(1050);
+assertion((await evaluate("(() => { const control = document.querySelector('.record-revision.recording'); return Boolean(control) && getComputedStyle(control).backgroundColor === 'rgb(158, 43, 66)' && control.innerText.includes('Recording') && control.innerText.includes('Stop') && !document.querySelector('.recording-banner'); })()")), "Revision recording uses one dark-red inline Recording and Stop control without a duplicate banner");
+await clickSelector('.record-revision.recording', "stop inline revision recording");
+assertion((await evaluate("document.querySelector('.sheet .note-field textarea').value.includes('clarify the symptom timeline')")), "Stopping the inline revision recording produces an editable transcript");
+await clickSelector('.revision-mode button:first-child', "Type revision mode");
 await setControl('.sheet .note-field textarea', "Clarify when the hip pain began and include the transfer assessment.");
 await clickText("Send revision to Scribe", true);
 const revisedEncounter = await evaluate("JSON.parse(localStorage.getItem('sage.simple.functional.v9.encounters')).find(item => item.id === 'review-walter')");
@@ -411,7 +421,7 @@ await setControl('.visit-note-field textarea', "Resident assessed at bedside. No
 assertion((await evaluate("document.querySelector('.visit-note-field textarea').value.includes('Order urinalysis')")), "The voice-transcribed Visit note can be manually edited with intended orders before the encounter ends");
 assertion(!(await evaluate("[...document.querySelectorAll('button')].some(button => button.innerText.includes('Add an order'))")) && !(await evaluate("Boolean(document.querySelector('.order-list'))")), "In-progress Encounters do not expose a separate structured order workflow");
 await clickText("End visit and send to Scribe", true);
-assertion((await evaluate("document.querySelector('.queue-count')?.innerText")) === "5", "Ending a visit adds it to the existing multi-encounter review queue");
+assertion((await evaluate("document.querySelector('.queue-filters button.active span')?.innerText")) === "5", "Ending a visit adds it to the Needs review tab counter");
 assertion((await text()).includes("Visit sent to Scribe") && (await text()).includes("after the Scribe returns the completed encounter"), "Scribe handoff tells the Provider that manual Scribe completion is required");
 assertion((await evaluate("document.querySelector('.queue-list .scribe-pending')?.disabled")) === true, "The encounter appears under Needs Review but is locked while the Scribe is working");
 assertion((await evaluate("document.querySelector('.queue-list > button:first-child')?.classList.contains('scribe-pending')")), "The newly sent encounter is prioritized above existing Needs Review examples");
