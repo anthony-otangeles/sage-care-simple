@@ -588,7 +588,7 @@ function MessagesScreen({ role, threads, people: availablePeople, filter, onFilt
     );
   }
   return (
-    <section className="screen-content secondary-screen" aria-labelledby="messages-title">
+    <section className={`screen-content secondary-screen messages-screen${selecting ? " selecting" : ""}`} aria-labelledby="messages-title">
       <div className="section-title-row"><div><h1 id="messages-title">Messages</h1><p className="screen-intro">Resident care rooms and people in one place.</p></div><button className="round-action" type="button" onClick={onNewMessage} aria-label="New message"><Plus /></button></div>
       <label className="search-field messages-search"><Search /><span className="sr-only">Search messages and people</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={filter === "rooms" ? "Search resident care rooms" : "Search people"} /></label>
       <div className="segmented" role="tablist" aria-label="Message type">
@@ -622,7 +622,7 @@ function MessagesScreen({ role, threads, people: availablePeople, filter, onFilt
         {filter === "rooms" && !residentRooms.length && <div className="calm-empty"><MessageSquare /><strong>No care rooms found</strong><span>Try another resident name, room, or message.</span></div>}
         {filter === "people" && !people.length && <div className="calm-empty"><UsersRound /><strong>No people found</strong><span>Try a name, role, or availability.</span></div>}
       </div>
-      {filter === "people" && selecting && <div className="group-action-bar"><small>Select at least 2 people</small><div><button type="button" disabled={selected.length < 2} onClick={() => finishGroup("call")}><Phone />Start group call</button><button className="primary" type="button" disabled={selected.length < 2} onClick={() => finishGroup("chat")}><MessageSquare />Start group chat</button></div></div>}
+      {filter === "people" && selecting && <div className="group-action-bar"><small>{selected.length < 2 ? "Select at least 2 people" : `${selected.length} people selected`}</small><div><button type="button" disabled={selected.length < 2} onClick={() => finishGroup("call")}><Phone />Start group call</button><button className="primary" type="button" disabled={selected.length < 2} onClick={() => finishGroup("chat")}><MessageSquare />Start group chat</button></div></div>}
     </section>
   );
 }
