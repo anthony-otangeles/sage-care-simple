@@ -26,6 +26,9 @@ When implementing from a selected generated mock, treat that image as the source
 - Resident care rooms are provisioned automatically; users never create them manually, and staff group conversations do not appear under Care rooms.
 - New Message targets one searchable Person. The People directory uses neutral placeholder avatars, gives each person explicit Call and Message actions, and supports multi-select group chats and calls.
 - During People multi-select, the group call/chat action bar stays docked to the visible bottom edge as mobile navigation hides or returns, and the directory reserves enough clearance that person cards never remain trapped beneath it.
+- Encounter Notes presents every Needs review and Done item as an individually separated card, while preserving the calmer locked-Scribe card state.
+- Review and Sign releases the billing dock's reserved scroll space when its chrome hides, so the document reaches the viewport bottom without a white dead zone.
+- Mobile toast notices move down to the visible bottom inset when the bottom navigation or Review and Sign dock hides instead of remaining suspended above released space.
 - The workspace must support switching between all assigned facilities and an individual facility; the selection filters residents, encounters, messages, actions, assignments, and schedule data.
 - Review Encounter uses the original SAGE section names and exact available field values and descriptions, including the complete code-status label and description.
 - Modal forms must maintain clear vertical spacing between inputs and their primary action.

@@ -1697,6 +1697,7 @@ button:disabled {
 
 .task-region.review-sign-active.header-hidden {
   bottom: 0;
+  padding-bottom: 0;
 }
 
 .task-content {
@@ -3006,6 +3007,8 @@ button:disabled {
 }
 
 .queue-list {
+  display: grid;
+  gap: 10px;
   margin-top: 13px;
 }
 
@@ -3016,11 +3019,12 @@ button:disabled {
   grid-template-columns: 46px minmax(0, 1fr) 18px;
   align-items: start;
   gap: 10px;
-  padding: 12px 0;
+  padding: 12px;
   text-align: left;
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--border);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgba(28, 25, 46, 0.04);
   cursor: pointer;
 }
 
@@ -3080,7 +3084,7 @@ button:disabled {
 }
 
 .queue-list > button.scribe-pending {
-  margin-top: 8px;
+  margin-top: 0;
   grid-template-columns: 46px minmax(0, 1fr);
   padding: 12px 10px;
   background: #fffaf0;
@@ -6035,6 +6039,7 @@ select,
   box-shadow: 0 8px 25px rgba(17, 19, 49, 0.22);
   font-size: calc(12px * var(--font-scale, 1));
   font-weight: 700;
+  transition: transform 180ms ease;
 }
 
 .toast svg {
@@ -6738,6 +6743,12 @@ select,
 /* Responsive desktop shell */
 
 @media (max-width: 899px) {
+  .app-scroll-region.nav-hidden ~ .toast,
+  .task-region:not(.review-sign-active) ~ .toast,
+  .task-region.review-sign-active.header-hidden ~ .toast {
+    transform: translateY(72px);
+  }
+
   .mobile-prototype input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
   .mobile-prototype textarea,
   .mobile-prototype select {

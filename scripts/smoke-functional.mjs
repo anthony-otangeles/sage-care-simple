@@ -205,11 +205,15 @@ const dimensions = await evaluate(`({ viewport: [innerWidth, innerHeight], bodyW
 assertion(dimensions.viewport[0] === 390 && dimensions.bodyWidth === 390 && dimensions.appWidth === 390, "390px mobile layout has no page-level horizontal overflow");
 assertion((await evaluate("document.querySelector('.app-header').getBoundingClientRect().height")) === 70, "Primary header uses the compact 70px treatment");
 assertion((await evaluate("(() => { const region = document.querySelector('.app-scroll-region'); const bar = document.querySelector('.custom-scrollbar.app-scrollbar'); const rect = bar?.getBoundingClientRect(); return region.scrollHeight > region.clientHeight && rect && rect.width === 4 && Math.round(rect.right) === innerWidth - 4 && bar.firstElementChild.getBoundingClientRect().height >= 36; })()")), "Long app pages expose a persistent app-rendered scrollbar at the right edge");
+await clickSelector('[data-workspace-facility="all"]', "active All facilities scope card");
+const toastBeforeChromeHides = await evaluate("Math.round(innerHeight - document.querySelector('.toast').getBoundingClientRect().bottom)");
 const scrollViewportBefore = await evaluate("(() => { const rect = document.querySelector('.app-scroll-region').getBoundingClientRect(); return { top: rect.top, bottom: rect.bottom, height: rect.height }; })()");
 await evaluate("document.querySelector('.app-scroll-region').scrollTop = 420");
 await wait(220);
 assertion((await evaluate("document.querySelector('.bottom-nav')?.classList.contains('hidden')")), "Bottom navigation hides while the user scrolls down");
 assertion((await evaluate("document.querySelector('.app-header')?.classList.contains('hidden')")), "Primary header hides while the user scrolls down");
+const toastAfterChromeHides = await evaluate("Math.round(innerHeight - document.querySelector('.toast').getBoundingClientRect().bottom)");
+assertion(toastBeforeChromeHides >= 80 && toastAfterChromeHides >= 10 && toastAfterChromeHides <= 16, "Toast notices retract to the visible bottom inset as mobile navigation hides");
 const scrollViewportAfter = await evaluate("(() => { const rect = document.querySelector('.app-scroll-region').getBoundingClientRect(); return { top: rect.top, bottom: rect.bottom, height: rect.height }; })()");
 assertion(JSON.stringify(scrollViewportAfter) === JSON.stringify(scrollViewportBefore), "Hiding mobile chrome does not resize the active scroll viewport");
 for (const position of [416, 422, 418, 424]) {
@@ -225,6 +229,7 @@ assertion(!(await evaluate("document.querySelector('.app-header')?.classList.con
 await clickSelector('.review-note', "review queue");
 assertion((await evaluate("document.querySelector('.queue-count')?.innerText")) === "5", "Review queue shows five independent pending encounters");
 assertion((await evaluate("document.querySelectorAll('.queue-list > button').length")) === 5, "Needs Review filter lists every pending encounter");
+assertion((await evaluate("(() => { const list = document.querySelector('.queue-list'); const card = list.querySelector(':scope > button'); const listStyle = getComputedStyle(list); const cardStyle = getComputedStyle(card); return listStyle.display === 'grid' && parseFloat(listStyle.rowGap) >= 8 && cardStyle.backgroundColor === 'rgb(255, 255, 255)' && cardStyle.borderStyle === 'solid' && parseFloat(cardStyle.borderRadius) >= 10; })()")), "Needs review items are individually separated cards");
 assertion((await evaluate("document.querySelectorAll('.queue-filters button').length")) === 2, "Encounter notes only has Needs review and Done filters");
 await clickText("Beatrice Holloway");
 assertion((await text()).includes("Review and Sign") && (await text()).includes("Needs review"), "Review and Sign puts the review status in the compact header");
@@ -254,6 +259,9 @@ assertion(reviewDock.text.includes("Sign and Submit for billing") && reviewDock.
 await evaluate("document.querySelector('.app-scroll-region').scrollTop = 420");
 await wait(220);
 assertion((await evaluate("document.querySelector('.task-header').classList.contains('hidden')")) && (await evaluate("document.querySelector('.review-sign-dock').classList.contains('hidden')")), "Review and Sign hides both its header and complete billing dock while scrolling down");
+await evaluate("document.querySelector('.app-scroll-region').scrollTop = document.querySelector('.app-scroll-region').scrollHeight");
+await wait(220);
+assertion((await evaluate("Math.abs(document.querySelector('.review-document').getBoundingClientRect().bottom - innerHeight) <= 1")), "Review and Sign releases the hidden billing dock reserve without a white end gap");
 await evaluate("document.querySelector('.app-scroll-region').scrollTop = 0");
 await wait(220);
 assertion(!(await evaluate("document.querySelector('.task-header').classList.contains('hidden')")) && !(await evaluate("document.querySelector('.review-sign-dock').classList.contains('hidden')")), "Review and Sign restores its header and billing dock when returning to the top");
@@ -323,6 +331,7 @@ assertion((await evaluate("document.querySelector('.queue-count')?.innerText")) 
 const signedEncounter = await evaluate("JSON.parse(localStorage.getItem('sage.simple.functional.v9.encounters')).find(item => item.id === 'review-beatrice')");
 assertion(signedEncounter.signedSignature.method === "type" && signedEncounter.signedSignature.providerName === "Dr. Hannah Cole" && Boolean(signedEncounter.signedSignature.signedAt), "Signing stores a provider signature snapshot and timestamp on the encounter");
 await clickText("Done", false);
+assertion((await evaluate("(() => { const card = document.querySelector('.queue-list > button'); const style = getComputedStyle(card); return style.backgroundColor === 'rgb(255, 255, 255)' && style.borderStyle === 'solid' && parseFloat(style.borderRadius) >= 10; })()")), "Done items use the same individually separated card treatment");
 await clickText("Beatrice Holloway");
 assertion((await text()).includes("Signed by Dr. Hannah Cole") && (await text()).includes("Today · now"), "Signed encounters show signer and signing time");
 await clickSelector('[aria-label="Go back"]', "signed encounter Back button");
