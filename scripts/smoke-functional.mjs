@@ -422,9 +422,16 @@ assertion((await evaluate("document.querySelectorAll('.encounter-workspace texta
 await setControl('.visit-note-field textarea', "Resident assessed at bedside. No acute distress observed; nursing will continue monitoring. Order urinalysis today and notify Provider of results.");
 assertion((await evaluate("document.querySelector('.visit-note-field textarea').value.includes('Order urinalysis')")), "The voice-transcribed Visit note can be manually edited with intended orders before the encounter ends");
 assertion(!(await evaluate("[...document.querySelectorAll('button')].some(button => button.innerText.includes('Add an order'))")) && !(await evaluate("Boolean(document.querySelector('.order-list'))")), "In-progress Encounters do not expose a separate structured order workflow");
+const endingEncounterId = await evaluate("JSON.parse(localStorage.getItem('sage.simple.functional.v9.encounters')).find(item => item.residentId === 'beatrice' && item.date === '2026-07-13').id");
 await clickText("End visit and send to Scribe", true);
+const shiftExitState = await evaluate(`(() => { const card = document.querySelector('[data-encounter-id="${endingEncounterId}"]'); return { onShift: document.querySelector('.shift-screen')?.innerText.includes('Your shift'), openedNotes: Boolean(document.querySelector('.queue-filters')), activeTab: document.querySelector('.bottom-nav button.active')?.innerText.trim(), exiting: card?.classList.contains('exiting'), animationName: card ? getComputedStyle(card).animationName : '' }; })()`);
+assertion(shiftExitState.onShift && !shiftExitState.openedNotes && shiftExitState.activeTab === "Shift", "Ending an encounter returns the Provider to Shift without opening Encounter Notes");
+assertion(shiftExitState.exiting && shiftExitState.animationName === "shift-card-exit", "The completed Shift card visibly animates out before it is removed");
+assertion((await text()).includes("Visit sent to Scribe") && (await text()).includes("after the Scribe returns the completed encounter"), "Scribe handoff remains visible on Shift while the card exits");
+await wait(500);
+assertion(!(await evaluate(`Boolean(document.querySelector('[data-encounter-id="${endingEncounterId}"]'))`)) && (await evaluate(`JSON.parse(localStorage.getItem('sage.simple.functional.v9.encounters')).find(item => item.id === "${endingEncounterId}").status`)) === "scribe-in-progress", "The card is removed after its exit animation and the encounter is finalized for Scribe");
+await clickSelector('.review-note', "open Encounter Notes after the Shift handoff");
 assertion((await evaluate("document.querySelector('.queue-filters button.active span')?.innerText")) === "5", "Ending a visit adds it to the Needs review tab counter");
-assertion((await text()).includes("Visit sent to Scribe") && (await text()).includes("after the Scribe returns the completed encounter"), "Scribe handoff tells the Provider that manual Scribe completion is required");
 assertion((await evaluate("document.querySelector('.queue-list .scribe-pending')?.disabled")) === true, "The encounter appears under Needs Review but is locked while the Scribe is working");
 assertion((await evaluate("document.querySelector('.queue-list > button:first-child')?.classList.contains('scribe-pending')")), "The newly sent encounter is prioritized above existing Needs Review examples");
 assertion((await text()).includes("Sent to Scribe") && (await text()).includes("Mark Rivera is completing the required details"), "Needs Review clearly identifies the persistent Scribe-in-progress encounter");

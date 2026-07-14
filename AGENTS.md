@@ -37,6 +37,7 @@ When implementing from a selected generated mock, treat that image as the source
 - Two-factor management actions, including Set up again, keep their labels on one line at supported mobile widths.
 - Request revision provides a taller text area in both Revision request and Editable transcript modes without changing other note-field heights.
 - Encounter Notes Scribe-progress callouts vertically center the clock icon against the complete progress-text block, including when the text wraps.
+- Ending an encounter returns the Provider to Shift rather than opening Encounter Notes; the completed Shift card visibly exits before the Scribe handoff status is finalized and removes it from the list.
 - The workspace must support switching between all assigned facilities and an individual facility; the selection filters residents, encounters, messages, actions, assignments, and schedule data.
 - Review Encounter uses the original SAGE section names and exact available field values and descriptions, including the complete code-status label and description.
 - Modal forms must maintain clear vertical spacing between inputs and their primary action.

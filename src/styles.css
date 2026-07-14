@@ -455,6 +455,37 @@ input:focus-visible {
   box-shadow: 0 3px 9px rgba(17, 19, 49, 0.05);
 }
 
+.shift-patient-card.exiting {
+  overflow: hidden;
+  pointer-events: none;
+  transform-origin: center;
+  animation: shift-card-exit 560ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: max-height, opacity, padding, transform;
+}
+
+@keyframes shift-card-exit {
+  0% {
+    max-height: 520px;
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+
+  48% {
+    max-height: 520px;
+    opacity: 0.35;
+    transform: translateX(24px) scale(0.98);
+  }
+
+  100% {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+    border-width: 0;
+    transform: translateX(42px) scale(0.96);
+  }
+}
+
 .patient-card-person {
   display: grid;
   width: 100%;

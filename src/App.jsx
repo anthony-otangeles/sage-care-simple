@@ -372,7 +372,7 @@ function Progress({ value, total, label }) {
   );
 }
 
-function ProviderHome({ encounters, location, onStart, onOpenVisit, onMessage, onOpenReviews, onAddEncounter, onOpenSchedule }) {
+function ProviderHome({ encounters, location, onStart, onOpenVisit, onMessage, onOpenReviews, onAddEncounter, onOpenSchedule, exitingEncounterId }) {
   const today = encounters.filter((encounter) => encounter.date === TODAY);
   const completed = today.filter((encounter) => encounter.status === "submitted-to-billing").length;
   const open = today.filter((encounter) => encounter.status === "scheduled" || encounter.status === "provider-in-progress");
@@ -428,8 +428,9 @@ function ProviderHome({ encounters, location, onStart, onOpenVisit, onMessage, o
                   const initials = nameInitials(resident.name);
                   const latestUpdate = resident.reports?.[0]?.time?.replace("Today · ", "") ?? "this week";
                   const canContinueHere = group.isCurrentFacility && encounter.status === "provider-in-progress";
+                  const exiting = encounter.id === exitingEncounterId;
                   return (
-                    <article key={encounter.id} className={`shift-patient-card ${statusTone(encounter.deviationSeverity)}${group.isCurrentFacility ? " current-facility" : ""}`}>
+                    <article key={encounter.id} data-encounter-id={encounter.id} className={`shift-patient-card ${statusTone(encounter.deviationSeverity)}${group.isCurrentFacility ? " current-facility" : ""}${exiting ? " exiting" : ""}`}>
                       <button className="patient-card-person" type="button" onClick={() => onOpenVisit(encounter)}>
                         <span className="patient-card-initials">{initials}</span>
                         <span className="patient-card-copy"><strong>{resident.name}</strong><small>Room {resident.room} · last seen {latestUpdate}</small></span>
@@ -1411,12 +1412,14 @@ export function App() {
   const [headerHidden, setHeaderHidden] = useState(false);
   const providerLocation = DEMO_PROVIDER_LOCATION;
   const noticeTimer = useRef(null);
+  const encounterExitTimer = useRef(null);
   const scrollRegionRef = useRef(null);
   const lastScrollTop = useRef(0);
   const scrollDirection = useRef(null);
   const scrollDirectionDistance = useRef(0);
   const scrollFrame = useRef(null);
   const [recording, setRecording] = useState(null);
+  const [exitingEncounterId, setExitingEncounterId] = useState(null);
   const [debriefDraft, setDebriefDraft] = useState("");
   const [selectedAssignmentId, setSelectedAssignmentId] = useState(initialAssignments[0].id);
   const [sageMessages, setSageMessages] = useState([{ id: "sage-welcome", mine: false, text: "Ask me who needs attention, what changed, or what is still incomplete." }]);
@@ -1438,6 +1441,10 @@ export function App() {
     const timer = window.setInterval(() => setRecording((current) => current ? { ...current, seconds: current.seconds + 1 } : current), 1000);
     return () => window.clearInterval(timer);
   }, [Boolean(recording)]);
+
+  useEffect(() => () => {
+    if (encounterExitTimer.current) window.clearTimeout(encounterExitTimer.current);
+  }, []);
 
   const visibleResidents = useMemo(() => facilityId === "all" ? residents : residents.filter((resident) => resident.facilityId === facilityId), [facilityId]);
   const visibleResidentIds = useMemo(() => new Set(visibleResidents.map((resident) => resident.id)), [visibleResidents]);
@@ -1479,11 +1486,6 @@ export function App() {
     setNavigationHistory((items) => [...items, { activeTab, module, residentTab, messageFilter, reviewFilter, scheduleWeekOffset }]);
     setModule({ type, ...payload });
     setSheet(null);
-  }
-  function replaceTask(type, payload = {}) {
-    setModule({ type, ...payload });
-    setSheet(null);
-    setRecording(null);
   }
   function closeTask() {
     const previous = navigationHistory[navigationHistory.length - 1];
@@ -1773,6 +1775,30 @@ export function App() {
     setRecording({ kind: "encounter", id: encounter.id, seconds: 0 });
   }
 
+  function endEncounter(encounter) {
+    const finalVisitNote = encounterVisitNote(encounter);
+    const providerNotes = finalVisitNote ? [{ label: "Provider Visit Note", text: finalVisitNote }] : [];
+    const next = {
+      ...encounter,
+      status: "scribe-in-progress",
+      endedAt: "Today · now",
+      assignedScribe: "Mark Rivera",
+      sentToScribeAt: new Date().toISOString(),
+      scribeCompletedAt: null,
+      sections: encounter.sections.map((section) => section.id === "notes" ? { ...section, content: providerNotes } : section),
+    };
+    if (encounterExitTimer.current) window.clearTimeout(encounterExitTimer.current);
+    setExitingEncounterId(encounter.id);
+    goToRootTab("home");
+    toast("Visit sent to Scribe. Review will be available after the Scribe returns the completed encounter.");
+    encounterExitTimer.current = window.setTimeout(() => {
+      updateEncounter(next);
+      appendTimelineEvent({ residentId: encounter.residentId, kind: "provider-note", title: "Provider note sent to Scribe", text: providerNotes.map((note) => `${note.label}: ${note.text}`).join(" "), actor: roleProfiles.provider.name, sourceType: "encounter", sourceId: encounter.id, status: "scribe-in-progress" });
+      setExitingEncounterId(null);
+      encounterExitTimer.current = null;
+    }, 560);
+  }
+
   const reviewCount = visibleEncounters.filter((encounter) => reviewQueueStatuses.has(encounter.status)).length;
   const roleActionCount = role === "don" ? visibleActions.filter((action) => action.status !== "completed").length : visibleActions.filter((action) => action.ownerRole === role && action.status !== "completed").length;
   const activeReviewEncounter = module?.type === "review" ? encounters.find((item) => item.id === module.encounterId) : null;
@@ -1911,7 +1937,7 @@ export function App() {
   if (!signedIn) return <SignedOutScreen onSignIn={signInAs} fontSize={fontSize} twoFactorSettings={twoFactorSettings} />;
 
   const rootContent = activeTab === "home"
-    ? role === "provider" ? <ProviderHome encounters={visibleEncounters} location={providerLocation} onStart={startEncounter} onOpenVisit={(encounter) => setSheet({ type: "visit-details", encounterId: encounter.id })} onMessage={openCareRoom} onOpenReviews={() => openTask("reviews")} onAddEncounter={() => openAddEncounter()} onOpenSchedule={() => openTask("schedule")} />
+    ? role === "provider" ? <ProviderHome encounters={visibleEncounters} location={providerLocation} onStart={startEncounter} onOpenVisit={(encounter) => setSheet({ type: "visit-details", encounterId: encounter.id })} onMessage={openCareRoom} onOpenReviews={() => openTask("reviews")} onAddEncounter={() => openAddEncounter()} onOpenSchedule={() => openTask("schedule")} exitingEncounterId={exitingEncounterId} />
       : role === "don" ? <DonHome residents={visibleResidents} actions={visibleActions} onOpenResident={openResident} onOpenActions={() => openTask("actions")} onSchedule={() => openTask("schedule")} />
         : <CnaHome assignments={visibleAssignments} actions={visibleActions} onDebrief={(assignment) => { setSelectedAssignmentId(assignment.id); setDebriefDraft(assignment.transcript || ""); openTask("debrief"); }} onOpenResident={openResident} onOpenActions={() => openTask("actions")} />
     : activeTab === "residents" ? <ResidentsScreen role={role} residents={visibleResidents} encounters={visibleEncounters} cnaResidentIds={cnaResidentIds} onOpenResident={openResident} />
@@ -1933,26 +1959,7 @@ export function App() {
   }
   if (module?.type === "encounter") {
     const encounter = encounters.find((item) => item.id === module.encounterId);
-    moduleContent = <EncounterWorkspace encounter={encounter} onUpdate={updateEncounter} onEnd={() => {
-      const finalVisitNote = encounterVisitNote(encounter);
-      const providerNotes = finalVisitNote ? [{ label: "Provider Visit Note", text: finalVisitNote }] : [];
-      const next = {
-        ...encounter,
-        status: "scribe-in-progress",
-        endedAt: "Today · now",
-        assignedScribe: "Mark Rivera",
-        sentToScribeAt: new Date().toISOString(),
-        scribeCompletedAt: null,
-        sections: encounter.sections.map((section) => {
-          if (section.id === "notes") return { ...section, content: providerNotes };
-          return section;
-        }),
-      };
-      updateEncounter(next);
-      appendTimelineEvent({ residentId: encounter.residentId, kind: "provider-note", title: "Provider note sent to Scribe", text: providerNotes.map((note) => `${note.label}: ${note.text}`).join(" "), actor: roleProfiles.provider.name, sourceType: "encounter", sourceId: encounter.id, status: "scribe-in-progress" });
-      toast("Visit sent to Scribe. Review will be available after the Scribe returns the completed encounter.");
-      replaceTask("reviews");
-    }} recording={recording?.kind === "encounter" && recording.id === encounter.id ? recording : null} onRecord={() => requestEncounterRecording(encounter)} />;
+    moduleContent = <EncounterWorkspace encounter={encounter} onUpdate={updateEncounter} onEnd={() => endEncounter(encounter)} recording={recording?.kind === "encounter" && recording.id === encounter.id ? recording : null} onRecord={() => requestEncounterRecording(encounter)} />;
   }
   if (module?.type === "thread") {
     const thread = threads.find((item) => item.id === module.threadId);
