@@ -152,12 +152,15 @@ input:focus-visible {
 
 .app-scroll-region {
   position: absolute;
-  inset: 70px 0 72px;
+  inset: 0;
+  padding-top: 70px;
+  padding-bottom: 72px;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: none;
-  transition: bottom 180ms ease;
+  scrollbar-color: rgba(105, 99, 125, 0.58) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
 }
 
 .app-scroll-region.nav-hidden {
@@ -169,7 +172,16 @@ input:focus-visible {
 }
 
 .app-scroll-region::-webkit-scrollbar {
-  display: none;
+  width: 4px;
+}
+
+.app-scroll-region::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-scroll-region::-webkit-scrollbar-thumb {
+  background: rgba(105, 99, 125, 0.58);
+  border-radius: 999px;
 }
 
 .screen-content {
@@ -1207,6 +1219,9 @@ input:focus-visible {
   background: var(--surface);
   border-radius: 18px 18px 12px 12px;
   box-shadow: 0 18px 50px rgba(17, 19, 49, 0.2);
+  scrollbar-color: rgba(105, 99, 125, 0.58) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
 }
 
 .sheet-handle {
@@ -1645,11 +1660,14 @@ button:disabled {
 }
 
 .task-region {
-  inset: 76px 0 0;
+  inset: 0;
+  padding-top: 76px;
+  padding-bottom: 0;
 }
 
 .task-region.review-sign-active {
-  bottom: 78px;
+  bottom: 0;
+  padding-bottom: 78px;
 }
 
 .task-region.review-sign-active.header-hidden {
@@ -6236,6 +6254,25 @@ select,
 .signed-out-app {
   overflow-y: auto;
   background: linear-gradient(180deg, #f8f7ff 0%, #ffffff 42%);
+  scrollbar-color: rgba(105, 99, 125, 0.58) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.signed-out-app::-webkit-scrollbar,
+.sheet::-webkit-scrollbar {
+  width: 4px;
+}
+
+.signed-out-app::-webkit-scrollbar-track,
+.sheet::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.signed-out-app::-webkit-scrollbar-thumb,
+.sheet::-webkit-scrollbar-thumb {
+  background: rgba(105, 99, 125, 0.58);
+  border-radius: 999px;
 }
 
 .signed-out-screen {
@@ -6627,6 +6664,18 @@ select,
 
 /* Responsive desktop shell */
 
+@media (max-width: 899px) {
+  .mobile-prototype input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .mobile-prototype textarea,
+  .mobile-prototype select {
+    font-size: max(16px, calc(14px * var(--font-scale, 1)));
+  }
+
+  .mobile-prototype .verification-code-fields input {
+    font-size: max(18px, calc(18px * var(--font-scale, 1)));
+  }
+}
+
 @media (min-width: 900px) {
   body {
     background: #f4f2f7;
@@ -6814,7 +6863,9 @@ select,
 
   .app-scroll-region,
   .app-scroll-region.header-hidden {
-    inset: 80px 0 0 248px;
+    inset: 0 0 0 248px;
+    padding-top: 80px;
+    padding-bottom: 0;
     background: #f7f6f9;
   }
 
@@ -6946,7 +6997,8 @@ select,
   }
 
   .task-region.review-sign-active {
-    bottom: 82px;
+    bottom: 0;
+    padding-bottom: 82px;
   }
 
   .task-region.review-sign-active.header-hidden {

@@ -124,6 +124,7 @@ assertion((await evaluate("document.querySelector('.sage-mark')?.innerText.trim(
 assertion((await evaluate("document.querySelector('link[rel=icon]')?.getAttribute('href')")) === "/sage-logo.png?v=20260714-203226", "Favicon uses a cache-busted URL for the latest uploaded SAGE logo");
 assertion(copy.includes("Forgot password?") && copy.includes("Sign in with Otangeles Notes+"), "Sign in offers password recovery and Otangeles Notes+");
 assertion(!copy.includes("Choose your SAGE role") && !copy.includes("Director of Nursing") && !copy.includes("Certified Nursing Assistant"), "Sign in does not expose other role personas");
+assertion(parseFloat(await evaluate("getComputedStyle(document.querySelector('.login-form input')).fontSize")) >= 16, "Mobile sign-in fields use at least 16px text to prevent browser focus zoom");
 await signIn("provider@sage.com", "wrong-password");
 assertion((await text()).includes("Email or password is incorrect."), "Invalid credentials do not open a SAGE session");
 await clickText("Forgot password?", true);
@@ -198,10 +199,19 @@ await clickSelector('[data-workspace-facility="all"]', "All Facilities card");
 const dimensions = await evaluate(`({ viewport: [innerWidth, innerHeight], bodyWidth: document.body.scrollWidth, appWidth: document.querySelector(".mobile-prototype").clientWidth })`);
 assertion(dimensions.viewport[0] === 390 && dimensions.bodyWidth === 390 && dimensions.appWidth === 390, "390px mobile layout has no page-level horizontal overflow");
 assertion((await evaluate("document.querySelector('.app-header').getBoundingClientRect().height")) === 70, "Primary header uses the compact 70px treatment");
+assertion((await evaluate("(() => { const region = document.querySelector('.app-scroll-region'); return getComputedStyle(region).scrollbarWidth === 'thin' && region.scrollHeight > region.clientHeight; })()")), "Long app pages expose a thin scrollbar at the right edge");
+const scrollViewportBefore = await evaluate("(() => { const rect = document.querySelector('.app-scroll-region').getBoundingClientRect(); return { top: rect.top, bottom: rect.bottom, height: rect.height }; })()");
 await evaluate("document.querySelector('.app-scroll-region').scrollTop = 420");
 await wait(220);
 assertion((await evaluate("document.querySelector('.bottom-nav')?.classList.contains('hidden')")), "Bottom navigation hides while the user scrolls down");
 assertion((await evaluate("document.querySelector('.app-header')?.classList.contains('hidden')")), "Primary header hides while the user scrolls down");
+const scrollViewportAfter = await evaluate("(() => { const rect = document.querySelector('.app-scroll-region').getBoundingClientRect(); return { top: rect.top, bottom: rect.bottom, height: rect.height }; })()");
+assertion(JSON.stringify(scrollViewportAfter) === JSON.stringify(scrollViewportBefore), "Hiding mobile chrome does not resize the active scroll viewport");
+for (const position of [416, 422, 418, 424]) {
+  await evaluate(`document.querySelector('.app-scroll-region').scrollTop = ${position}`);
+  await wait(35);
+}
+assertion((await evaluate("document.querySelector('.bottom-nav')?.classList.contains('hidden') && document.querySelector('.app-header')?.classList.contains('hidden')")), "Tiny momentum reversals do not flap the header or bottom navigation");
 await evaluate("document.querySelector('.app-scroll-region').scrollTop = 0");
 await wait(220);
 assertion(!(await evaluate("document.querySelector('.bottom-nav')?.classList.contains('hidden')")), "Bottom navigation returns when the user scrolls back to the top");

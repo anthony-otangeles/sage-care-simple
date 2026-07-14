@@ -1344,6 +1344,9 @@ export function App() {
   const noticeTimer = useRef(null);
   const scrollRegionRef = useRef(null);
   const lastScrollTop = useRef(0);
+  const scrollDirection = useRef(null);
+  const scrollDirectionDistance = useRef(0);
+  const scrollFrame = useRef(null);
   const [recording, setRecording] = useState(null);
   const [debriefDraft, setDebriefDraft] = useState("");
   const [selectedAssignmentId, setSelectedAssignmentId] = useState(initialAssignments[0].id);
@@ -1438,6 +1441,8 @@ export function App() {
     setBottomNavHidden(false);
     setHeaderHidden(false);
     lastScrollTop.current = 0;
+    scrollDirection.current = null;
+    scrollDirectionDistance.current = 0;
     scrollRegionRef.current?.scrollTo({ top: 0 });
   }
   function signInAs(nextRole) {
@@ -1584,6 +1589,8 @@ export function App() {
     setBottomNavHidden(false);
     setHeaderHidden(false);
     lastScrollTop.current = 0;
+    scrollDirection.current = null;
+    scrollDirectionDistance.current = 0;
     scrollRegionRef.current?.scrollTo({ top: 0 });
     const next = facilities.find((item) => item.id === nextFacilityId);
     toast(next ? `Switched to ${next.shortName}.` : "Showing all facilities.");
@@ -1591,22 +1598,36 @@ export function App() {
 
   function handleAppScroll(event) {
     if (module && module.type !== "review") return;
-    const nextScrollTop = Math.max(0, event.currentTarget.scrollTop);
-    if (nextScrollTop <= 8) {
-      setBottomNavHidden(false);
-      setHeaderHidden(false);
+    const scrollElement = event.currentTarget;
+    if (scrollFrame.current) window.cancelAnimationFrame(scrollFrame.current);
+    scrollFrame.current = window.requestAnimationFrame(() => {
+      const nextScrollTop = Math.max(0, scrollElement.scrollTop);
+      const delta = nextScrollTop - lastScrollTop.current;
       lastScrollTop.current = nextScrollTop;
-      return;
-    }
-    if (nextScrollTop > lastScrollTop.current + 7) {
-      setBottomNavHidden(true);
-      setHeaderHidden(true);
-      lastScrollTop.current = nextScrollTop;
-    } else if (nextScrollTop < lastScrollTop.current - 7) {
-      setBottomNavHidden(false);
-      setHeaderHidden(false);
-      lastScrollTop.current = nextScrollTop;
-    }
+
+      if (nextScrollTop <= 8) {
+        setBottomNavHidden(false);
+        setHeaderHidden(false);
+        scrollDirection.current = null;
+        scrollDirectionDistance.current = 0;
+        return;
+      }
+
+      if (Math.abs(delta) < 1) return;
+      const nextDirection = delta > 0 ? "down" : "up";
+      if (scrollDirection.current !== nextDirection) {
+        scrollDirection.current = nextDirection;
+        scrollDirectionDistance.current = 0;
+      }
+      scrollDirectionDistance.current += Math.abs(delta);
+
+      const threshold = nextDirection === "down" ? 30 : 22;
+      if (scrollDirectionDistance.current < threshold) return;
+      const hideChrome = nextDirection === "down";
+      setBottomNavHidden(hideChrome);
+      setHeaderHidden(hideChrome);
+      scrollDirectionDistance.current = 0;
+    });
   }
   function saveProviderSignature(signature) {
     setProviderSignatures((items) => ({ ...items, hannah: signature }));
