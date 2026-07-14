@@ -32,7 +32,7 @@ When implementing from a selected generated mock, treat that image as the source
 - Long primary pages release the bottom navigation's reserved scroll space as soon as the navigation hides, so their final content reaches the viewport bottom without an empty white footer.
 - The persistent scroll indicator stays inside the visible content rail and never overlays the app header, bottom navigation, or Review and Sign billing dock; it expands only after that chrome hides.
 - Facility-filtered task pages—including Encounter Notes, Schedule, Actions, Shift Debrief, and Ask SAGE—show the facility scope cards in place, and changing scope keeps the current task page open.
-- The primary header's SΛGE wordmark uses the same navy as the bottom navigation; authentication and desktop-sidebar brand treatments remain context-specific.
+- The primary mobile header and every signed-out authentication screen use the same navy SΛGE wordmark as the bottom navigation; the dark desktop sidebar keeps its white wordmark treatment.
 - Encounter Notes uses only the Needs review and Done tab badges as workflow counters and does not repeat them in a summary banner.
 - Active voice recording in Request revision uses one dark-red inline Recording/Stop control and never shows the global recording banner at the same time.
 - Two-factor management actions, including Set up again, keep their labels on one line at supported mobile widths.

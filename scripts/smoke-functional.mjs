@@ -121,6 +121,7 @@ await resetApp();
 let copy = await text();
 assertion(copy.includes("Sign in to SAGE") && copy.includes("Email address") && copy.includes("Password"), "Signed-out users see credential-based SAGE sign in");
 assertion((await evaluate("document.querySelector('.sage-mark')?.innerText.trim()")) === "SΛGE" && (await evaluate("document.querySelector('.sage-mark img')?.getAttribute('src')")) === "/sage-logo.png", "SAGE branding uses the uploaded logo and inverted-V wordmark");
+assertion((await evaluate("getComputedStyle(document.querySelector('.signed-out-brand .sage-mark')).color")) === "rgb(28, 25, 46)", "The authentication SAGE wordmark uses the same navy as the signed-in mobile header");
 assertion((await evaluate("document.querySelector('link[rel=icon]')?.getAttribute('href')")) === "/sage-logo.png?v=20260714-203226", "Favicon uses a cache-busted URL for the latest uploaded SAGE logo");
 assertion(copy.includes("Forgot password?") && copy.includes("Sign in with Otangeles Notes+"), "Sign in offers password recovery and Otangeles Notes+");
 assertion(!copy.includes("Choose your SAGE role") && !copy.includes("Director of Nursing") && !copy.includes("Certified Nursing Assistant"), "Sign in does not expose other role personas");

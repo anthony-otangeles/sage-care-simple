@@ -111,6 +111,10 @@ input:focus-visible {
   color: var(--ink);
 }
 
+.signed-out-brand .sage-mark {
+  color: var(--ink);
+}
+
 .sage-inverted-a {
   display: inline-block;
   margin-inline: -0.02em 0.01em;
