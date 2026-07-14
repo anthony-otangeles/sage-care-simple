@@ -223,6 +223,10 @@ for (const position of [416, 422, 418, 424]) {
   await wait(35);
 }
 assertion((await evaluate("document.querySelector('.bottom-nav')?.classList.contains('hidden') && document.querySelector('.app-header')?.classList.contains('hidden')")), "Tiny momentum reversals do not flap the header or bottom navigation");
+await evaluate("document.querySelector('.app-scroll-region').scrollTop = document.querySelector('.app-scroll-region').scrollHeight");
+await wait(220);
+const primaryPageEnd = await evaluate("(() => { const region = document.querySelector('.app-scroll-region'); const content = document.querySelector('.screen-content'); return { bottomPadding: parseFloat(getComputedStyle(region).paddingBottom), endGap: Math.round(innerHeight - content.getBoundingClientRect().bottom) }; })()");
+assertion(primaryPageEnd.bottomPadding === 0 && Math.abs(primaryPageEnd.endGap) <= 1, "Long primary pages release the hidden bottom-navigation reserve without a white end gap");
 await evaluate("document.querySelector('.app-scroll-region').scrollTop = 0");
 await wait(220);
 assertion(!(await evaluate("document.querySelector('.bottom-nav')?.classList.contains('hidden')")), "Bottom navigation returns when the user scrolls back to the top");

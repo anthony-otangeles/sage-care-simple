@@ -1682,6 +1682,13 @@ export function App() {
         return;
       }
 
+      const distanceFromBottom = Math.max(0, scrollElement.scrollHeight - scrollElement.clientHeight - nextScrollTop);
+      if (bottomNavHidden && delta < 0 && distanceFromBottom <= 1) {
+        scrollDirection.current = null;
+        scrollDirectionDistance.current = 0;
+        return;
+      }
+
       if (Math.abs(delta) < 1) return;
       const nextDirection = delta > 0 ? "down" : "up";
       if (scrollDirection.current !== nextDirection) {

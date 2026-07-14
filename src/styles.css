@@ -166,7 +166,7 @@ input:focus-visible {
 }
 
 .app-scroll-region.nav-hidden {
-  bottom: 0;
+  padding-bottom: 0;
 }
 
 .app-scroll-region.header-hidden {
@@ -2373,7 +2373,6 @@ button:disabled {
   background: rgba(255, 255, 255, 0.98);
   border-top: 1px solid var(--border);
   box-shadow: 0 -8px 20px rgba(17, 19, 49, 0.08);
-  transition: transform 180ms ease;
 }
 
 .group-action-bar > small {
@@ -2413,12 +2412,6 @@ button:disabled {
 
 .group-action-bar svg {
   width: 15px;
-}
-
-@media (max-width: 899px) {
-  .app-scroll-region.nav-hidden .group-action-bar {
-    transform: translateY(72px);
-  }
 }
 
 .staff-avatar img {

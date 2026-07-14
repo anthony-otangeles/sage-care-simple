@@ -29,6 +29,7 @@ When implementing from a selected generated mock, treat that image as the source
 - Encounter Notes presents every Needs review and Done item as an individually separated card, while preserving the calmer locked-Scribe card state.
 - Review and Sign releases the billing dock's reserved scroll space when its chrome hides, so the document reaches the viewport bottom without a white dead zone.
 - Mobile toast notices move down to the visible bottom inset when the bottom navigation or Review and Sign dock hides instead of remaining suspended above released space.
+- Long primary pages release the bottom navigation's reserved scroll space as soon as the navigation hides, so their final content reaches the viewport bottom without an empty white footer.
 - The persistent scroll indicator stays inside the visible content rail and never overlays the app header, bottom navigation, or Review and Sign billing dock; it expands only after that chrome hides.
 - Facility-filtered task pages—including Encounter Notes, Schedule, Actions, Shift Debrief, and Ask SAGE—show the facility scope cards in place, and changing scope keeps the current task page open.
 - The primary header's SΛGE wordmark uses the same navy as the bottom navigation; authentication and desktop-sidebar brand treatments remain context-specific.
