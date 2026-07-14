@@ -392,13 +392,9 @@ assertion((await evaluate("document.querySelector('.visit-note-field textarea').
 await clickSelector('.encounter-voice-capture button', "inline recording Stop button");
 assertion((await evaluate("document.querySelector('.visit-note-field textarea').value.includes('Resident assessed at bedside') && !document.querySelector('.visit-note-field textarea').value.includes('Chest symptoms resolved before assessment.')")), "Stopping voice capture replaces the existing Visit note with the editable transcript");
 assertion((await evaluate("document.querySelectorAll('.encounter-workspace textarea').length")) === 1 && !(await evaluate("Boolean(document.querySelector('.voice-transcript-field'))")), "Voice transcription remains in the single Visit note textarea");
-await setControl('.visit-note-field textarea', "Resident assessed at bedside. No acute distress observed; nursing will continue monitoring.");
-assertion((await evaluate("document.querySelector('.visit-note-field textarea').value.includes('No acute distress observed')")), "The voice-transcribed Visit note can be manually edited before the encounter ends");
-await clickText("Add an order", true);
-await setControl('.sheet-form input', "Urinalysis");
-await setControl('.sheet-form textarea', "Collect today and notify provider of results.");
-await clickText("Add order", true);
-assertion((await text()).includes("Urinalysis"), "Orders can be added inside an encounter");
+await setControl('.visit-note-field textarea', "Resident assessed at bedside. No acute distress observed; nursing will continue monitoring. Order urinalysis today and notify Provider of results.");
+assertion((await evaluate("document.querySelector('.visit-note-field textarea').value.includes('Order urinalysis')")), "The voice-transcribed Visit note can be manually edited with intended orders before the encounter ends");
+assertion(!(await evaluate("[...document.querySelectorAll('button')].some(button => button.innerText.includes('Add an order'))")) && !(await evaluate("Boolean(document.querySelector('.order-list'))")), "In-progress Encounters do not expose a separate structured order workflow");
 await clickText("End visit and send to Scribe", true);
 assertion((await evaluate("document.querySelector('.queue-count')?.innerText")) === "5", "Ending a visit adds it to the existing multi-encounter review queue");
 assertion((await text()).includes("Visit sent to Scribe") && (await text()).includes("after the Scribe returns the completed encounter"), "Scribe handoff tells the Provider that manual Scribe completion is required");
@@ -414,11 +410,11 @@ assertion((await evaluate("document.querySelector('.queue-list .scribe-pending')
 const scribeEncounter = await evaluate("JSON.parse(localStorage.getItem('sage.simple.functional.v9.encounters')).find(item => item.residentId === 'beatrice' && item.date === '2026-07-13')");
 const storedProviderNotes = scribeEncounter.sections.find((section) => section.id === "notes").content;
 const storedAssessment = scribeEncounter.sections.find((section) => section.id === "assessment").content;
-assertion(storedProviderNotes.length === 1 && storedProviderNotes[0].label === "Provider Visit Note" && storedProviderNotes[0].text.includes("No acute distress observed") && !storedProviderNotes[0].text.includes("Chest symptoms resolved before assessment."), "The locked Scribe encounter preserves the single final Visit note exactly");
-assertion(!storedProviderNotes.some((note) => note.text.includes("Urinalysis")) && storedAssessment.some((item) => item.text.includes("Urinalysis")), "The locked encounter keeps orders under Assessment & Plan rather than Notes");
+assertion(storedProviderNotes.length === 1 && storedProviderNotes[0].label === "Provider Visit Note" && storedProviderNotes[0].text.includes("No acute distress observed") && storedProviderNotes[0].text.includes("Order urinalysis") && !storedProviderNotes[0].text.includes("Chest symptoms resolved before assessment."), "The locked Scribe encounter preserves the single final Visit note, including spoken or typed order instructions");
+assertion(!storedAssessment.some((item) => item.kind === "encounter-order"), "The encounter no longer creates separate structured orders before Scribe processing");
 assertion(scribeEncounter.status === "scribe-in-progress" && scribeEncounter.assignedScribe === "Mark Rivera" && Boolean(scribeEncounter.endedAt) && !scribeEncounter.scribeCompletedAt, "Scribe assignment remains pending until manual completion outside the Provider workflow");
 const providerTimelineEvents = await evaluate("JSON.parse(localStorage.getItem('sage.simple.functional.v9.timeline-events')).filter(item => item.residentId === 'beatrice' && item.kind === 'provider-note')");
-assertion(providerTimelineEvents.some((event) => event.title === "Provider note sent to Scribe" && event.text.includes("No acute distress observed") && !event.text.includes("Chest symptoms resolved before assessment.")), "Provider Scribe handoff appends only the final Visit note to the resident timeline");
+assertion(providerTimelineEvents.some((event) => event.title === "Provider note sent to Scribe" && event.text.includes("No acute distress observed") && event.text.includes("Order urinalysis") && !event.text.includes("Chest symptoms resolved before assessment.")), "Provider Scribe handoff appends only the complete final Visit note to the resident timeline");
 assertion(!providerTimelineEvents.some((event) => event.title === "Provider note returned from Scribe" && event.sourceId === scribeEncounter.id), "No automatic Scribe-return timeline event is created");
 assertion(providerTimelineEvents.some((event) => event.title === "Provider note signed and submitted" && event.sourceId === "review-beatrice" && event.text.includes("submitted for billing")), "Provider signing appends a separate billing-submission timeline event");
 

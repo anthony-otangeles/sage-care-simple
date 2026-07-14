@@ -32,8 +32,8 @@ When implementing from a selected generated mock, treat that image as the source
 - Seed enough residents, encounters, messages, timeline events, actions, assignments, and schedule items to make each facility feel operational rather than empty.
 - Encounter types include the complete original SAGE visit-type list; add any additional visit types supplied by the product owner without removing the original set.
 - Ending a provider encounter uses “End visit and send to Scribe.” The new encounter is prioritized at the top of Needs Review as a locked “Sent to Scribe” item. It never returns automatically or on a short timer; Provider review remains unavailable until a separate Scribe completion returns it.
-- Review Encounter Notes must reproduce the Provider’s single final Visit note exactly as written, whether it was typed or voice-transcribed, and must never contain encounter orders. Notes displays historical revision records but does not offer Request revision.
-- Encounter orders captured during a visit appear in Assessment & Plan.
+- Review Encounter Notes must reproduce the Provider’s single final Visit note exactly as written, whether it was typed or voice-transcribed. Notes displays historical revision records but does not offer Request revision.
+- In-progress Encounters do not expose a separate structured Add an order workflow. The Provider types or speaks intended orders into the unified Visit note for Scribe processing and downstream clinical-note structure.
 - Code Status uses the same plain field treatment as other review data, without a nested highlighted card.
 - Encounter voice recording shows its timer and Stop action only inside the unified Visit note control; do not show the global recording banner at the same time.
 - The visit-type selector includes the 24 original SAGE types followed by the 53 product-owner additions, in supplied order.

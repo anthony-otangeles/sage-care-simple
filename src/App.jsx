@@ -874,7 +874,7 @@ function encounterVisitNote(encounter) {
   return [encounter.textNote, encounter.voiceTranscript].filter((note) => note?.trim()).map((note) => note.trim()).join("\n\n");
 }
 
-function EncounterWorkspace({ encounter, onUpdate, onOrder, onEnd, recording, onRecord }) {
+function EncounterWorkspace({ encounter, onUpdate, onEnd, recording, onRecord }) {
   const resident = residentById(encounter.residentId);
   const visitNote = encounterVisitNote(encounter);
   return (
@@ -885,8 +885,6 @@ function EncounterWorkspace({ encounter, onUpdate, onOrder, onEnd, recording, on
         <label className="note-field visit-note-field"><span className="visit-note-heading"><strong id="visit-note-title">Visit note</strong><small>Type or record</small></span><textarea value={visitNote} onChange={(event) => onUpdate({ ...encounter, textNote: event.target.value, voiceTranscript: "", noteInputMethod: "typed" })} placeholder="Type what you assessed and decided…" /></label>
         <div className="voice-capture encounter-voice-capture"><span className="voice-capture-icon">{recording ? <Square /> : <Mic />}</span><span><strong>{recording ? "Recording into Visit note" : "Record into Visit note"}</strong><small>{recording ? "Your current note stays here until you stop and the transcription is ready." : visitNote ? "A new transcription will replace the current Visit note after confirmation." : "The transcription will appear in the same editable field above."}</small></span><button className={recording ? "recording" : ""} type="button" onClick={onRecord}>{recording ? <Square /> : <Mic />}{recording ? `Stop · ${recording.seconds}s` : visitNote ? "Replace with voice" : "Record voice note"}</button></div>
       </section>
-      {encounter.orders?.length > 0 && <div className="order-list"><h2>Orders from this visit</h2>{encounter.orders.map((order) => <div key={order.id}><FileText /><span><strong>{order.type}</strong><small>{order.details}</small></span></div>)}</div>}
-      <button className="quiet-wide" type="button" onClick={onOrder}><Plus />Add an order</button>
       <button className="document-sign" type="button" disabled={!visitNote} onClick={onEnd}><CheckCircle2 />End visit and send to Scribe</button>
     </section>
   );
@@ -1844,7 +1842,7 @@ export function App() {
       return;
     }
     const scheduledTime = displayTime(sheet.time || "12:00");
-    const encounter = { id: `enc-${Date.now()}`, residentId: resident.id, date: TODAY, ...scheduledTime, type: sheet.visitType, status: "scheduled", priority: sheet.deviationSeverity, deviationSeverity: sheet.deviationSeverity, reason: sheet.reason.trim(), change: sheet.change.trim(), changeObservedAt: sheet.changeObservedAt, textNote: "", voiceTranscript: "", orders: [], sections: documentSections(resident.id, sheet.reason.trim()) };
+    const encounter = { id: `enc-${Date.now()}`, residentId: resident.id, date: TODAY, ...scheduledTime, type: sheet.visitType, status: "scheduled", priority: sheet.deviationSeverity, deviationSeverity: sheet.deviationSeverity, reason: sheet.reason.trim(), change: sheet.change.trim(), changeObservedAt: sheet.changeObservedAt, textNote: "", voiceTranscript: "", sections: documentSections(resident.id, sheet.reason.trim()) };
     setEncounters((items) => [...items, encounter]); goToRootTab("home"); toast("Encounter added to today’s shift.");
   }
   function addAction() {
@@ -1858,11 +1856,6 @@ export function App() {
     if (!sheet.title?.trim()) return;
     const itemFacilityId = sheet.residentId ? residentById(sheet.residentId)?.facilityId : sheet.facilityId;
     setSchedule((items) => [...items, { id: `s-${Date.now()}`, date: sheet.date, time: sheet.time || "Facility rounds", kind: sheet.kind, title: sheet.title.trim(), detail: sheet.detail || "Scheduled in SAGE", requirement: sheet.kind === "encounter" ? "Follow-up" : undefined, residentId: sheet.residentId || null, facilityId: itemFacilityId }]); setSheet(null); toast("Facility schedule updated.");
-  }
-  function addOrder() {
-    if (!sheet.typeName?.trim()) return;
-    const encounter = encounters.find((item) => item.id === sheet.encounterId);
-    updateEncounter({ ...encounter, orders: [...(encounter.orders ?? []), { id: `o-${Date.now()}`, type: sheet.typeName.trim(), details: sheet.details || "Follow facility protocol." }] }); setSheet(null); toast("Order added to this visit.");
   }
   function addRevision() {
     if (!sheet.sectionId || !sheet.text?.trim()) return;
@@ -1942,10 +1935,9 @@ export function App() {
   }
   if (module?.type === "encounter") {
     const encounter = encounters.find((item) => item.id === module.encounterId);
-    moduleContent = <EncounterWorkspace encounter={encounter} onUpdate={updateEncounter} onOrder={() => setSheet({ type: "order", encounterId: encounter.id, typeName: "", details: "" })} onEnd={() => {
+    moduleContent = <EncounterWorkspace encounter={encounter} onUpdate={updateEncounter} onEnd={() => {
       const finalVisitNote = encounterVisitNote(encounter);
       const providerNotes = finalVisitNote ? [{ label: "Provider Visit Note", text: finalVisitNote }] : [];
-      const capturedOrders = (encounter.orders ?? []).map((order) => ({ label: "Orders", text: `${order.type}: ${order.details}`, kind: "encounter-order" }));
       const next = {
         ...encounter,
         status: "scribe-in-progress",
@@ -1955,7 +1947,6 @@ export function App() {
         scribeCompletedAt: null,
         sections: encounter.sections.map((section) => {
           if (section.id === "notes") return { ...section, content: providerNotes };
-          if (section.id === "assessment") return { ...section, content: [...section.content.filter((item) => item.kind !== "encounter-order"), ...capturedOrders] };
           return section;
         }),
       };
@@ -2040,7 +2031,6 @@ export function App() {
         const encounter = encounters.find((item) => item.id === sheet.encounterId);
         return <Sheet title="Replace Visit note?" onClose={() => setSheet(null)}><div className="voice-overwrite-warning"><span><AlertTriangle /></span><div><strong>Your current note will be replaced</strong><p>When you stop recording, the new transcription will overwrite everything currently in the Visit note. This can’t be undone.</p></div></div><div className="voice-overwrite-preview"><small>Current Visit note</small><p>{encounterVisitNote(encounter)}</p></div><button className="sheet-primary" type="button" onClick={() => { setSheet(null); setRecording({ kind: "encounter", id: encounter.id, seconds: 0 }); }}><Mic />Record and replace</button><button className="sheet-secondary" type="button" onClick={() => setSheet(null)}>Keep current note</button></Sheet>;
       })()}
-      {sheet?.type === "order" && <Sheet title="Add an order" onClose={() => setSheet(null)}><div className="sheet-form"><label>Order type<input value={sheet.typeName} onChange={(event) => setSheet({ ...sheet, typeName: event.target.value })} placeholder="Lab, imaging, medication…" /></label><label>Instructions<textarea value={sheet.details} onChange={(event) => setSheet({ ...sheet, details: event.target.value })} placeholder="What should the care team do?" /></label><button className="sheet-primary" type="button" disabled={!sheet.typeName.trim()} onClick={addOrder}>Add order</button></div></Sheet>}
       {sheet?.type === "action" && <Sheet title="Assign an action" onClose={() => setSheet(null)}><div className="sheet-form"><label>Resident<select value={sheet.residentId} onChange={(event) => setSheet({ ...sheet, residentId: event.target.value })}>{visibleResidents.map((resident) => <option key={resident.id} value={resident.id}>{resident.name}</option>)}</select></label><label>Action<input value={sheet.title} onChange={(event) => setSheet({ ...sheet, title: event.target.value })} placeholder="What needs to be done?" /></label><label>Assign to<select value={sheet.ownerRole} onChange={(event) => setSheet({ ...sheet, ownerRole: event.target.value })}><option value="cna">CNA · Nina Alvarez</option><option value="provider">Provider · Dr. Hannah Cole</option></select></label><label>Priority<select value={sheet.priority} onChange={(event) => setSheet({ ...sheet, priority: event.target.value })}><option>Routine</option><option>High</option><option>Urgent</option></select></label><label>Instructions<textarea value={sheet.instructions} onChange={(event) => setSheet({ ...sheet, instructions: event.target.value })} placeholder="Add a simple instruction…" /></label><button className="sheet-primary" type="button" disabled={!sheet.title.trim()} onClick={addAction}>Assign action</button></div></Sheet>}
       {sheet?.type === "schedule" && (() => {
         const facilityResidents = visibleResidents.filter((resident) => resident.facilityId === sheet.facilityId);

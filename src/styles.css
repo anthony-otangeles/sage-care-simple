@@ -3908,44 +3908,6 @@ select,
   width: 17px;
 }
 
-.order-list {
-  margin-top: 16px;
-  padding: 13px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-
-.order-list h2 {
-  margin: 0 0 8px;
-  font-size: calc(14px * var(--font-scale, 1));
-}
-
-.order-list > div {
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
-  gap: 8px;
-  padding: 7px 0;
-}
-
-.order-list > div > span {
-  display: grid;
-  gap: 2px;
-}
-
-.order-list svg {
-  width: 19px;
-  color: var(--purple);
-}
-
-.order-list strong {
-  font-size: calc(12px * var(--font-scale, 1));
-}
-
-.order-list small {
-  color: var(--muted);
-  font-size: calc(11px * var(--font-scale, 1));
-}
-
 .thread-view,
 .sage-view {
   display: flex;
