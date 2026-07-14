@@ -5023,6 +5023,121 @@ select,
   color: var(--purple);
 }
 
+.two-factor-status {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 11px 12px;
+  background: #f5f5f8;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.two-factor-status.enabled {
+  background: rgba(0, 201, 167, 0.08);
+  border-color: rgba(0, 201, 167, 0.28);
+}
+
+.two-factor-status > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.two-factor-status strong {
+  font-size: calc(13px * var(--font-scale, 1));
+}
+
+.two-factor-status small {
+  color: var(--muted);
+  font-size: calc(10px * var(--font-scale, 1));
+  line-height: 1.4;
+}
+
+.two-factor-status b {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  color: #236b5f;
+  background: #dff8f2;
+  border-radius: 999px;
+  font-size: calc(10px * var(--font-scale, 1));
+}
+
+.two-factor-setup-button svg {
+  width: 18px;
+}
+
+.two-factor-setup-panel {
+  display: grid;
+  gap: 13px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.two-factor-setup-panel ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 21px;
+  color: var(--ink);
+  font-size: calc(11px * var(--font-scale, 1));
+  line-height: 1.45;
+}
+
+.two-factor-setup-panel code {
+  display: inline-block;
+  padding: 2px 5px;
+  color: var(--purple);
+  background: var(--purple-soft);
+  border-radius: 5px;
+  font-size: calc(10px * var(--font-scale, 1));
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.two-factor-setup-panel > label {
+  display: grid;
+  gap: 6px;
+  color: var(--ink);
+  font-size: calc(12px * var(--font-scale, 1));
+  font-weight: 750;
+}
+
+.two-factor-setup-panel > p,
+.prototype-auth-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: calc(10px * var(--font-scale, 1));
+  line-height: 1.45;
+}
+
+.two-factor-setup-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+}
+
+.two-factor-setup-actions .primary-wide {
+  margin-top: 0;
+}
+
+.two-factor-setup-actions > button:last-child {
+  min-height: 46px;
+  padding: 9px 12px;
+  color: var(--purple);
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  font-size: calc(11px * var(--font-scale, 1));
+  font-weight: 750;
+  cursor: pointer;
+}
+
 .saved-signature {
   display: grid;
   gap: 7px;
@@ -6051,6 +6166,22 @@ select,
   line-height: 1.5;
 }
 
+.two-factor-copy {
+  margin-top: 78px;
+}
+
+.two-factor-login-form {
+  margin-top: 26px;
+}
+
+.prototype-auth-note {
+  margin-top: -7px;
+  padding: 9px 11px;
+  color: #5f5579;
+  background: var(--purple-soft);
+  border-radius: 9px;
+}
+
 .login-form {
   display: grid;
   gap: 16px;
@@ -6300,6 +6431,10 @@ select,
 
   .screen-content {
     padding-inline: 14px;
+  }
+
+  .two-factor-setup-actions {
+    grid-template-columns: 1fr;
   }
 
   .visit-main {

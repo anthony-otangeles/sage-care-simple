@@ -82,10 +82,17 @@ async function setControl(selector, value) {
   await wait(80);
 }
 
-async function signIn(email, password = "password") {
+async function completeTwoFactor(code = "123456") {
+  if (!(await text()).includes("Verify it’s you")) return;
+  await setControl('.two-factor-login-form input[autocomplete="one-time-code"]', code);
+  await clickText("Verify and continue", true);
+}
+
+async function signIn(email, password = "password", verify = true) {
   await setControl('.login-form input[type="email"]', email);
   await setControl('.login-form input[type="password"]', password);
   await clickText("Sign in", true);
+  if (verify) await completeTwoFactor();
 }
 
 async function resetApp(width = 390, height = 844) {
@@ -117,7 +124,12 @@ await setControl('.login-form input[type="email"]', "provider@sage.com");
 await clickText("Send reset link", true);
 assertion((await text()).includes("Check your email") && (await text()).includes("password reset instructions"), "Forgot Password completes with a non-enumerating reset confirmation");
 await clickText("Back to sign in", true);
-await signIn("provider@sage.com");
+await signIn("provider@sage.com", "password", false);
+const providerTwoFactorCopy = (await text()).toLowerCase();
+assertion(providerTwoFactorCopy.includes("two-factor authentication") && providerTwoFactorCopy.includes("verify it’s you") && providerTwoFactorCopy.includes("any non-empty code is accepted"), "Valid Provider credentials open the two-factor verification step before the workspace");
+assertion(!(await text()).includes("Your shift"), "Provider workspace remains locked until two-factor verification is submitted");
+await completeTwoFactor("any-demo-code");
+assertion((await text()).includes("Your shift"), "Any non-empty prototype verification code completes Provider sign in");
 
 copy = await text();
 assertion(copy.includes("Your shift") && copy.includes("Add an Encounter"), "Provider home loads with a clear next action");
@@ -187,7 +199,7 @@ await wait(220);
 assertion(!(await evaluate("document.querySelector('.bottom-nav')?.classList.contains('hidden')")), "Bottom navigation returns when the user scrolls back to the top");
 assertion(!(await evaluate("document.querySelector('.app-header')?.classList.contains('hidden')")), "Primary header returns when the user scrolls back to the top");
 
-await clickText("notes need your review");
+await clickSelector('.review-note', "review queue");
 assertion((await evaluate("document.querySelector('.queue-count')?.innerText")) === "5", "Review queue shows five independent pending encounters");
 assertion((await evaluate("document.querySelectorAll('.queue-list > button').length")) === 5, "Needs Review filter lists every pending encounter");
 assertion((await evaluate("document.querySelectorAll('.queue-filters button').length")) === 2, "Encounter notes only has Needs review and Done filters");
@@ -226,6 +238,13 @@ await clickText("Sign and Submit for billing", true);
 assertion((await text()).includes("Set up your signature first"), "Signing is blocked until the provider has a saved signature");
 await clickText("Set up signature", true);
 assertion((await text()).includes("Provider signature") && (await text()).includes("Draw"), "Signature Settings opens without losing the encounter review");
+assertion((await text()).includes("Two-factor authentication") && (await text()).includes("Authenticator app") && (await text()).includes("On"), "Provider Settings shows the enabled two-factor authentication status");
+await clickText("Set up again", true);
+assertion((await text()).includes("SAGE-DEMO-HANNAH") && (await text()).includes("Prototype note: any non-empty code is accepted."), "Provider can open authenticator setup instructions from Settings");
+await setControl('.two-factor-settings .two-factor-code-input', "settings-demo-code");
+await clickText("Verify and enable", true);
+assertion((await text()).includes("Two-factor authentication enabled."), "Provider can complete two-factor setup with any non-empty prototype code");
+assertion((await evaluate("JSON.parse(localStorage.getItem('sage.simple.functional.v9.two-factor')).provider.enabled")) === true, "Provider two-factor setup persists locally for later sign-ins");
 await clickText("Save signature", true);
 assertion((await text()).includes("Draw your signature before saving."), "Draw signature requires a captured signature before saving");
 await clickText("Upload", true);
@@ -664,12 +683,15 @@ await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 1000, de
 await wait(250);
 const desktopLogin = await evaluate(`(() => { const card = document.querySelector('.signed-out-screen').getBoundingClientRect(); return { viewport: innerWidth, body: document.body.scrollWidth, app: document.querySelector('.mobile-prototype').clientWidth, card: Math.round(card.width), center: Math.round(card.top + card.height / 2) }; })()`);
 assertion(desktopLogin.viewport === 1440 && desktopLogin.body === 1440 && desktopLogin.app === 1440 && desktopLogin.card <= 500 && Math.abs(desktopLogin.center - 500) <= 2, "Desktop login uses the full viewport and keeps its readable form vertically centered without overflow");
-await signIn("provider@sage.com");
+await signIn("provider@sage.com", "password", false);
+const desktopTwoFactor = await evaluate(`(() => { const card = document.querySelector('.signed-out-screen').getBoundingClientRect(); return { copy: document.body.innerText, body: document.body.scrollWidth, width: Math.round(card.width), center: Math.round(card.top + card.height / 2) }; })()`);
+assertion(desktopTwoFactor.copy.includes("Verify it’s you") && desktopTwoFactor.body === 1440 && desktopTwoFactor.width <= 500 && Math.abs(desktopTwoFactor.center - 500) <= 2, "Desktop Provider login keeps the two-factor verification step centered and overflow-free");
+await completeTwoFactor("desktop-demo-code");
 const palette = await evaluate(`(() => { const style = getComputedStyle(document.documentElement); return [style.getPropertyValue('--ink').trim(), style.getPropertyValue('--mint').trim(), style.getPropertyValue('--purple').trim()]; })()`);
 assertion(JSON.stringify(palette) === JSON.stringify(["#1c192e", "#00c9a7", "#845ec2"]), "The app exposes the approved navy, mint, and purple brand palette");
 const desktopShell = await evaluate(`(() => { const nav = document.querySelector('.desktop-nav'); const header = document.querySelector('.app-header'); const region = document.querySelector('.app-scroll-region'); return { navDisplay: getComputedStyle(nav).display, navWidth: Math.round(nav.getBoundingClientRect().width), headerLeft: Math.round(header.getBoundingClientRect().left), regionLeft: Math.round(region.getBoundingClientRect().left), bottomDisplay: getComputedStyle(document.querySelector('.bottom-nav')).display, facilities: document.querySelectorAll('.facility-scope-card').length, shiftColumns: getComputedStyle(document.querySelector('.facility-shift-list')).gridTemplateColumns.split(' ').length, body: document.body.scrollWidth }; })()`);
 assertion(desktopShell.navDisplay === "flex" && desktopShell.navWidth === 248 && desktopShell.headerLeft === 248 && desktopShell.regionLeft === 248 && desktopShell.bottomDisplay === "none" && desktopShell.facilities === 5 && desktopShell.shiftColumns === 1 && desktopShell.body === 1440, "Desktop shell uses a persistent sidebar, aligned header/content, five facility cards, and full-width Shift facility groups without overflow");
-await clickText("notes need your review");
+await clickSelector('.review-note', "desktop review queue");
 await clickSelector('.queue-list > button:not(:disabled)', "first desktop-ready encounter");
 const desktopReviewHeader = await evaluate(`(() => { const header = document.querySelector('.task-header'); const status = document.querySelector('.task-header-status'); const headerRect = header.getBoundingClientRect(); const statusRect = status.getBoundingClientRect(); return { text: status.innerText, headerLeft: Math.round(headerRect.left), headerRight: Math.round(headerRect.right), statusRight: Math.round(statusRect.right), viewport: innerWidth }; })()`);
 assertion(desktopReviewHeader.text === "Needs review" && desktopReviewHeader.headerLeft === 248 && desktopReviewHeader.headerRight === desktopReviewHeader.viewport && desktopReviewHeader.statusRight <= desktopReviewHeader.viewport, "Desktop Review and Sign keeps the Needs review status visible on the right side of the aligned header");

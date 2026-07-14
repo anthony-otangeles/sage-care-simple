@@ -83,6 +83,9 @@ const initialProfileFields = {
   don: { firstName: "Jamie", lastName: "Patel" },
   cna: { firstName: "Nina", lastName: "Alvarez" },
 };
+const initialTwoFactorSettings = {
+  provider: { enabled: true, method: "Authenticator app", savedAt: "Demo account default" },
+};
 const residentStatusRank = { Declining: 0, Watchful: 1, "New admission": 2, Stable: 3 };
 const deviationSeverityRank = { Urgent: 0, High: 1, Moderate: 2, Mild: 3 };
 const SHIFT_DEVIATION_MIGRATION = `${STORAGE_VERSION}.shift-deviations-v2`;
@@ -1099,12 +1102,43 @@ function ProviderSignatureSetup({ signature, providerName, onSave, onRemove }) {
   );
 }
 
-function SettingsView({ role, profileFields, assignedFacilities, fontSize, onFontSize, onSave, notify, onNotify, signature, onSaveSignature, onRemoveSignature }) {
+function ProviderTwoFactorSetup({ config, onSave }) {
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [code, setCode] = useState("");
+
+  function closeSetup() {
+    setSetupOpen(false);
+    setCode("");
+  }
+
+  function confirmSetup() {
+    if (!code.trim()) return;
+    onSave({ enabled: true, method: "Authenticator app", savedAt: "Today · now" });
+    closeSetup();
+  }
+
+  return (
+    <section className="settings-section two-factor-settings">
+      <div className="settings-title-row"><span><h2>Two-factor authentication</h2><p>Add an extra verification step whenever you sign in.</p></span><ShieldCheck /></div>
+      <div className={`two-factor-status${config?.enabled ? " enabled" : ""}`}><span><strong>{config?.enabled ? "Enabled" : "Not set up"}</strong><small>{config?.enabled ? `${config.method} · ${config.savedAt}` : "Use an authenticator app to protect this account."}</small></span><b>{config?.enabled ? "On" : "Off"}</b></div>
+      {!setupOpen && <button className="primary-wide two-factor-setup-button" type="button" onClick={() => setSetupOpen(true)}><ShieldCheck />{config?.enabled ? "Set up again" : "Set up 2FA"}</button>}
+      {setupOpen && <div className="two-factor-setup-panel">
+        <ol><li>Open your authenticator app.</li><li>Add SAGE with setup key <code>SAGE-DEMO-HANNAH</code>.</li><li>Enter the code shown by the app.</li></ol>
+        <label>Verification code<input className="two-factor-code-input" autoFocus autoComplete="one-time-code" inputMode="numeric" value={code} onChange={(event) => setCode(event.target.value)} placeholder="Enter any code" /></label>
+        <p>Prototype note: any non-empty code is accepted.</p>
+        <div className="two-factor-setup-actions"><button className="primary-wide" type="button" disabled={!code.trim()} onClick={confirmSetup}><Check />Verify and enable</button><button type="button" onClick={closeSetup}>Cancel</button></div>
+      </div>}
+    </section>
+  );
+}
+
+function SettingsView({ role, profileFields, assignedFacilities, fontSize, onFontSize, onSave, notify, onNotify, signature, onSaveSignature, onRemoveSignature, twoFactor, onSaveTwoFactor }) {
   const profile = roleProfiles[role];
   const [firstName, setFirstName] = useState(profileFields.firstName);
   const [lastName, setLastName] = useState(profileFields.lastName);
   return (
     <section className="task-content settings-view">
+      {role === "provider" && <ProviderTwoFactorSetup config={twoFactor} onSave={onSaveTwoFactor} />}
       {role === "provider" && <ProviderSignatureSetup signature={signature} providerName={profile.name} onSave={onSaveSignature} onRemove={onRemoveSignature} />}
       <section className="settings-section">
         <h2>My profile</h2>
@@ -1135,10 +1169,13 @@ function HelpView() {
   return <section className="task-content help-view"><div className="help-hero"><HelpCircle /><h2>SAGE is designed to guide you</h2><p>You do not need to memorize where anything lives.</p></div><div className="help-steps">{steps.map(([number, title, copy]) => <article key={number}><span>{number}</span><div><strong>{title}</strong><p>{copy}</p></div></article>)}</div><div className="why-box"><Phone /><span><strong>Still need help?</strong>Ask your SAGE workspace administrator for hands-on help.</span></div></section>;
 }
 
-function SignedOutScreen({ onSignIn, fontSize }) {
+function SignedOutScreen({ onSignIn, fontSize, twoFactorSettings }) {
   const [mode, setMode] = useState("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [pendingRole, setPendingRole] = useState(null);
+  const [pendingSource, setPendingSource] = useState("password");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [resetSent, setResetSent] = useState(false);
@@ -1147,6 +1184,20 @@ function SignedOutScreen({ onSignIn, fontSize }) {
     setMode(nextMode);
     setError("");
     setResetSent(false);
+    setVerificationCode("");
+    if (nextMode === "sign-in") setPendingRole(null);
+  }
+
+  function completeFirstFactor(accountRole, source) {
+    if (!twoFactorSettings?.[accountRole]?.enabled) {
+      onSignIn(accountRole);
+      return;
+    }
+    setPendingRole(accountRole);
+    setPendingSource(source);
+    setVerificationCode("");
+    setMode("two-factor");
+    setError("");
   }
 
   function submitCredentials(event) {
@@ -1157,7 +1208,7 @@ function SignedOutScreen({ onSignIn, fontSize }) {
       return;
     }
     setError("");
-    onSignIn(accountRole);
+    completeFirstFactor(accountRole, "password");
   }
 
   function submitPasswordReset(event) {
@@ -1174,11 +1225,20 @@ function SignedOutScreen({ onSignIn, fontSize }) {
       return;
     }
     setError("");
-    onSignIn(accountRole);
+    completeFirstFactor(accountRole, "notes-plus");
+  }
+
+  function submitTwoFactor(event) {
+    event.preventDefault();
+    if (!pendingRole || !verificationCode.trim()) return;
+    setError("");
+    onSignIn(pendingRole);
   }
 
   let content;
-  if (mode === "forgot") {
+  if (mode === "two-factor") {
+    content = <><div className="signed-out-copy two-factor-copy"><span className="eyebrow">Two-factor authentication</span><h1>Verify it’s you</h1><p>Enter the code from your authenticator app for <strong>{email.trim()}</strong>.</p></div><form className="login-form two-factor-login-form" onSubmit={submitTwoFactor}><label>Verification code<span className="login-input"><ShieldCheck /><input autoFocus type="text" autoComplete="one-time-code" inputMode="numeric" value={verificationCode} onChange={(event) => { setVerificationCode(event.target.value); setError(""); }} placeholder="Enter any code" required /></span></label><p className="prototype-auth-note">Prototype note: any non-empty code is accepted.</p><button className="login-primary" type="submit">Verify and continue</button><button className="auth-back" type="button" onClick={() => changeMode(pendingSource === "notes-plus" ? "notes-plus" : "sign-in")}><ArrowLeft />Back to sign in</button></form></>;
+  } else if (mode === "forgot") {
     content = resetSent
       ? <div className="auth-confirmation" role="status"><span><Mail /></span><h2>Check your email</h2><p>If a SAGE account exists for <strong>{email.trim()}</strong>, password reset instructions have been sent.</p><button className="login-primary" type="button" onClick={() => changeMode("sign-in")}>Back to sign in</button></div>
       : <><div className="signed-out-copy"><span className="eyebrow">Password help</span><h1>Reset your password</h1><p>Enter your work email and we’ll send instructions to reset your SAGE password.</p></div><form className="login-form" onSubmit={submitPasswordReset}><label>Email address<span className="login-input"><Mail /><input autoFocus type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@sage.com" required /></span></label><button className="login-primary" type="submit">Send reset link</button><button className="auth-back" type="button" onClick={() => changeMode("sign-in")}><ArrowLeft />Back to sign in</button></form></>;
@@ -1210,6 +1270,7 @@ export function App() {
   const [fontSize, setFontSize] = useStoredState("font-size", "default");
   const [profileFields, setProfileFields] = useStoredState("profile-fields", initialProfileFields);
   const [providerSignatures, setProviderSignatures] = useStoredState("signatures", {});
+  const [twoFactorSettings, setTwoFactorSettings] = useStoredState("two-factor", initialTwoFactorSettings);
   const [activeTab, setActiveTab] = useState("home");
   const [module, setModule] = useState(null);
   const [navigationHistory, setNavigationHistory] = useState([]);
@@ -1694,7 +1755,7 @@ export function App() {
     setSageMessages((items) => [...items, { id: `q-${Date.now()}`, mine: true, text: prompt }, { id: `a-${Date.now() + 1}`, mine: false, text: response }]);
   }
 
-  if (!signedIn) return <SignedOutScreen onSignIn={signInAs} fontSize={fontSize} />;
+  if (!signedIn) return <SignedOutScreen onSignIn={signInAs} fontSize={fontSize} twoFactorSettings={twoFactorSettings} />;
 
   const rootContent = activeTab === "home"
     ? role === "provider" ? <ProviderHome encounters={visibleEncounters} location={providerLocation} onStart={startEncounter} onOpenVisit={(encounter) => setSheet({ type: "visit-details", encounterId: encounter.id })} onMessage={openCareRoom} onOpenReviews={() => openTask("reviews")} onAddEncounter={() => openAddEncounter()} onOpenSchedule={() => openTask("schedule")} />
@@ -1756,7 +1817,7 @@ export function App() {
   }
   if (module?.type === "debrief" && !visibleAssignments.length) moduleContent = <section className="task-content"><div className="calm-empty"><CheckCircle2 /><strong>No residents assigned here</strong><span>Choose another facility to view CNA assignments.</span></div></section>;
   if (module?.type === "sage") moduleContent = <SageView messages={sageMessages} onSend={sageResponse} onPrompt={sageResponse} recording={recording?.kind === "sage" ? recording : null} onRecord={() => toggleRecording("sage", "assistant")} />;
-  if (module?.type === "settings") moduleContent = <SettingsView role={role} profileFields={profileFields[role] ?? initialProfileFields[role]} assignedFacilities={assignedFacilities} fontSize={fontSize} onFontSize={(nextSize) => { setFontSize(nextSize); toast(`Text size changed to ${nextSize}.`); }} notify={notify} onNotify={setNotify} signature={currentProviderSignature} onSaveSignature={saveProviderSignature} onRemoveSignature={removeProviderSignature} onSave={(nextFields) => { setProfileFields((items) => ({ ...items, [role]: nextFields })); toast("Profile saved."); }} />;
+  if (module?.type === "settings") moduleContent = <SettingsView role={role} profileFields={profileFields[role] ?? initialProfileFields[role]} assignedFacilities={assignedFacilities} fontSize={fontSize} onFontSize={(nextSize) => { setFontSize(nextSize); toast(`Text size changed to ${nextSize}.`); }} notify={notify} onNotify={setNotify} signature={currentProviderSignature} onSaveSignature={saveProviderSignature} onRemoveSignature={removeProviderSignature} twoFactor={twoFactorSettings[role]} onSaveTwoFactor={(nextSettings) => { setTwoFactorSettings((items) => ({ ...items, [role]: nextSettings })); toast("Two-factor authentication enabled."); }} onSave={(nextFields) => { setProfileFields((items) => ({ ...items, [role]: nextFields })); toast("Profile saved."); }} />;
   if (module?.type === "help") moduleContent = <HelpView />;
 
   const showReviewSignDock = role === "provider" && activeReviewEncounter && reviewableStatuses.has(activeReviewEncounter.status) && !sheet;
