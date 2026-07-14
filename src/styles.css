@@ -3094,7 +3094,7 @@ button:disabled {
 
 .scribe-wait {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
   margin-top: 6px;
   padding: 7px 8px;
@@ -3111,7 +3111,7 @@ button:disabled {
   width: 13px;
   height: 13px;
   flex: 0 0 13px;
-  margin-top: 1px;
+  margin-top: 0;
 }
 
 .scribe-wait > span {
@@ -5715,6 +5715,10 @@ select,
 .sheet > .note-field + .sheet-primary,
 .sheet > .record-revision + .note-field {
   margin-top: 16px;
+}
+
+.sheet .revision-note-field textarea {
+  min-height: 148px;
 }
 
 .sheet-form-intro {
