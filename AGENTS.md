@@ -16,3 +16,90 @@ When implementing from a selected generated mock, treat that image as the source
 - Every visible control in the primary experience must perform a real local action and show a clear result or next state.
 - Encounter review must use a queue that supports multiple notes needing review, revision requests, and completed/signed notes.
 - Keep advanced workflows available through plain-language task screens instead of exposing additional permanent navigation items.
+- Adding an encounter schedules it on the provider's Shift; it must not start the encounter automatically.
+- Add Encounter selects a resident through search by name, room, or facility rather than a resident dropdown.
+- Encounter Notes uses only “Needs review” and “Done” filters; do not include an “All” tab.
+- Review Encounter must preserve the complete clinical note structure from the original SAGE workflow, including history, exam, diagnosis, plan, orders, and follow-up sections.
+- Encounter review does not require per-section verification or a “Verify all” step before signing.
+- Messages must include a contactable staff directory, not only people with existing threads.
+- Every resident must have a dedicated care room that is reachable from both Messages and the resident profile and always opens the correct resident-linked thread.
+- Resident care rooms are provisioned automatically; users never create them manually, and staff group conversations do not appear under Care rooms.
+- New Message targets one searchable Person. The People directory uses neutral placeholder avatars, gives each person explicit Call and Message actions, and supports multi-select group chats and calls.
+- The workspace must support switching between all assigned facilities and an individual facility; the selection filters residents, encounters, messages, actions, assignments, and schedule data.
+- Review Encounter uses the original SAGE section names and exact available field values and descriptions, including the complete code-status label and description.
+- Modal forms must maintain clear vertical spacing between inputs and their primary action.
+- All dropdowns use a consistently inset chevron and enough right padding that the icon never sits against the field border.
+- Seed enough residents, encounters, messages, timeline events, actions, assignments, and schedule items to make each facility feel operational rather than empty.
+- Encounter types include the complete original SAGE visit-type list; add any additional visit types supplied by the product owner without removing the original set.
+- Ending a provider encounter uses “End visit and send to Scribe.” The new encounter is prioritized at the top of Needs Review as a locked “Sent to Scribe” item. It never returns automatically or on a short timer; Provider review remains unavailable until a separate Scribe completion returns it.
+- Review Encounter Notes must reproduce the provider's captured text and voice transcript as separate entries and must never contain encounter orders. Notes displays historical revision records but does not offer Request revision.
+- Encounter orders captured during a visit appear in Assessment & Plan.
+- Code Status uses the same plain field treatment as other review data, without a nested highlighted card.
+- Encounter voice recording shows its timer and Stop action only in the existing Voice Note row; do not show the global recording banner at the same time.
+- The visit-type selector includes the 24 original SAGE types followed by the 53 product-owner additions, in supplied order.
+- Header Back must restore the actual previously visited screen rather than always closing to a root tab; preserve Messages type, Review filter, resident detail tab, and schedule week across nested navigation.
+- Push Notifications uses a standard 18 × 18 checkbox while the complete preference row remains the touch target.
+- Providers must save a signature before signing an encounter. Signature Settings supports drawing, typed signatures, and PNG/JPEG/WebP uploads up to 2 MB; signing requires a final encounter-specific confirmation and stores a signature snapshot.
+- Resident lists and search results are ordered by clinical status—Declining, Watchful, New admission, Stable, then unknown statuses—and alphabetically within each status.
+- Resident care rooms support adding assigned staff from the resident's facility. All care-team roles may manage membership; duplicate members are prevented and changes are recorded in the room.
+- Do not show Conversation Summary in care rooms, staff groups, or direct messages. Voice and video calls are persisted as conversation events with a call-specific View transcription action; voice-message playback remains a separate interaction.
+- More includes a distinct Logout button for every role. Logging out ends the current session, preserves local clinical data, and requires authentication again.
+- Authentication uses email and password rather than visible role/persona choices. Prototype accounts are provider@sage.com, don@sage.com, and cna@sage.com with the shared password `password`; the authenticated account determines the role without exposing other roles.
+- Authentication is session-only: every full page load or reopened prototype starts at the login screen, even after a successful prior sign-in. Clinical data and user preferences remain persisted.
+- Sign in includes a functional local Forgot Password flow and a simulated “Sign in with Otangeles Notes+” connected-account flow.
+- Settings is scoped to the signed-in user. Do not expose Workspace role switching or a Reset prototype control.
+- Profile Settings uses separate First name and Last name fields, keeps Role disabled, and lists every facility assigned to the authenticated account.
+- Text size is a persisted, app-wide accessibility preference with Small, Default, and Large choices. The current visual size is Default; Large must remain usable at the 320px narrow-mobile layout.
+- Provider, DON, and CNA remain complete role experiences in the same four-tab SAGE Simple shell. The DON and CNA demo personas have useful, facility-filtered work across all four facilities.
+- Resident Timeline is a persisted unified care-team activity feed. It retains every CNA debrief capture, DON action assignment/status change, and Provider note handoff/signature event; Provider-note events open the associated encounter read-only for non-Providers.
+- Today’s Provider Shift is seeded with exactly 12 visits—three per facility—with severity ordering and facility-specific completion progress.
+- Provider Shift and Schedule always retain each resident or event’s facility context, even when a facility filter is active. Visit details include the full facility name and street address so in-person travel can be planned before starting the encounter.
+- Provider encounter actions use “Start Encounter” and “Continue Encounter”; do not label these actions as visits.
+- Shift baseline-change callouts render the “Since [day]” lead-in in black; only explicit no-change states use green.
+- Horizontally scrolling facility scope cards use generous visual separation so adjacent facility boundaries are immediately clear.
+- Resident Profile uses a solid purple Add encounter action.
+- A Provider revision request is sent back to Scribe for editing and locks Provider review until Scribe completion returns it.
+- Provider note review is titled “Review and Sign,” shows the review status in the header, begins with an encounter-level SAGE summary, and omits the repeated resident identity/date block.
+- Review and Sign does not offer Request revision on the SAGE Summary or Notes. The other 15 clinical sections retain their source-scoped Request revision action, so the revision sheet does not ask the Provider to choose a section again.
+- The Provider’s final review action is “Sign and Submit for billing” and remains docked at the bottom of the Review and Sign screen while clinical content scrolls.
+- Provider Shift groups today’s visits by facility, shows progress for every facility in addition to overall progress, and places the current facility first.
+- Every Provider Shift patient is presented as a roomy card following the supplied visual reference, with initials, room/update context, current clinical condition, reason for visit, what changed, a visible Start Encounter or Continue Encounter button, and direct care-room messaging.
+- Provider Shift exists to assess documented deviations from each resident’s baseline; never place an encounter on Shift with “Stable,” “At baseline,” routine progress, or another non-deviation as its change.
+- Provider Shift patient cards are ordered by encounter-level deviation severity—Urgent, High, Moderate, Mild, then unknown—and alphabetically within each severity; resident-directory status and scheduled time do not determine Shift order.
+- Add Encounter requires a specific reason for visit, deviation severity, and plain-language description of what changed from baseline before it can be added to Shift.
+- The local prototype always simulates the Provider as currently at Brickyard Elkhart, shows “AT BRICKYARD ELKHART · YOU’RE HERE,” and enables encounter actions only for that facility, including actions opened through Visit details.
+- Replace the facility dropdown with horizontally scrollable facility cards at the top of every primary page. Put “All facilities” first, then location-prioritize the individual facilities and clearly mark the simulated current facility “You’re here.”
+- Every Provider Shift baseline deviation must state when it was first observed using an immediately understandable day reference such as “Monday,” “Sunday · Yesterday,” or an earlier named day. Add Encounter requires this onset day.
+- Hide the bottom navigation while the user scrolls down; restore it when they scroll up or return to the top.
+- Keep the bottom navigation compact and visually immediate: use a 72px dark navy bar with high-contrast inactive tabs and a mint active state while preserving accessible touch targets.
+- Keep the primary app header sleek and compact, and hide it together with the bottom navigation while scrolling down; restore both when scrolling up or returning to the top.
+- Provider Shift reason and baseline-change values use regular weight. A real deviation uses an amber “Since {day}” callout with Sage provenance; reserve green exclusively for an explicit no-change state.
+- Review Encounter sections are always expanded and are not accordions. Vital Signs, Medications, Assessment & Plan, and CPT Codes use the supplied card-based SAGE layouts with section-state badges, a two-column vitals grid, medication cards, diagnosis/treatment-plan cards, and a CPT code pill.
+- Facility selector cards use a clear three-level type hierarchy: light contextual kicker, one strong facility-name line, and regular-weight progress/detail copy.
+- Schedule is facility-first rather than patient-time-first. Each day shows the facilities on the Provider’s route as accordions; expanded facilities separate required follow-up and 30/60-day visits from the daily Otangeles Notes+ visit list, and patient appointment times are not shown.
+- Keep the Provider Shift overview as a distinct, low-density white section matching the supplied reference, with overall progress, the Changes to assess heading, one-line helper copy, and Add an Encounter before facility groups begin.
+- A requested encounter revision uses a locked “Revision sent to Scribe” queue state and identifies the Scribe editing it; it is not Provider-reviewable until Scribe completion returns it as Needs review.
+- Review and Sign places the status at the right side of the header and shows “{Resident} · completed by {Scribe}” below the title.
+- Every Review and Sign clinical section shows either “New this visit” or “Carried forward” and uses a white card on a subtle gray content background. All clinical sections except Notes expose a quiet Request revision action.
+- Review and Sign shows Service Date, Visit type, Facility, and Provider before the clinical sections. The SAGE Summary ends with: “A reading aid, not part of the note — what you sign is the full note below, exactly as written.”
+- Opening any Review and Sign sheet, including Request revision, temporarily hides the docked billing action so the sheet's primary action remains fully visible and tappable.
+- Ask SAGE supports an inline audio-record action that transcribes and submits a spoken question without also showing the global recording banner.
+- In-progress Encounters use a larger Visit note field and a prominent full-width Voice note capture. Stopping a recording reveals an editable transcription directly below the capture.
+- Locked Scribe queue cards use a calm hierarchy with one status badge, one clock icon, and one concise Scribe-progress message; do not repeat the same state through multiple icons or metadata lines.
+- Conversation headers are the single action surface: care rooms show the live member count plus Voice Call, Video Call, and a three-dot menu containing Add people and View resident profile; direct messages show “Direct message” plus Voice Call and Video Call. Long room and person names truncate with an ellipsis.
+- Voice and video call transcriptions use chronological, speaker-attributed dialogue. The signed-in participant is labeled “You”; private calls alternate with the other person, while group and care-room calls use actual thread members.
+- Schedule uses a horizontal Monday–Sunday picker and renders only the selected day. Exactly one facility accordion is expanded at a time, prioritizing the simulated current facility, and Add Schedule uses the selected date.
+- SAGE’s core application palette is navy `#1C192E`, mint `#00C9A7`, and purple `#845EC2`. Use the uploaded `public/sage-logo.png` directly across authentication, mobile, desktop, and favicon contexts; do not substitute or redraw it. Cache-bust the favicon reference whenever that source image is replaced so browsers display the current upload.
+- The visible brand wordmark is “SΛGE,” using an inverted-V form for the letter A while retaining “SAGE” as its accessible name.
+- Preserve the complete mobile experience below 900px. At 900px and above, use a full-width desktop shell with a persistent 248px navigation sidebar, aligned header and scroll region, desktop-width content, centered dialogs, and no horizontal page overflow.
+- On desktop, every Provider Shift facility group spans the full content width rather than sharing a multi-column row.
+- Below the 900px desktop breakpoint, the app shell fills the complete viewport at every width and height; never show a centered device-frame margin around the application.
+- On desktop, the sign-in card is centered both horizontally and vertically in the viewport.
+- Review and Sign hides both its header and the complete Sign and Submit for billing dock while scrolling down, expands the note into the released space, and restores both when scrolling up or returning to the top.
+- Resident identity uses abbreviated name initials everywhere in the app; do not display resident or patient photographs in lists, profiles, queues, encounters, messages, actions, debriefs, details, or search results.
+- Every Residents entry, resident care room, group conversation, and private-message/person entry is presented as an individually separated card on mobile and desktop.
+- The primary app header exposes a visible Ask SAGE shortcut instead of a Profile/Settings icon. Settings remains available through More and the desktop account control.
+- Shift patient cards use more generous padding and vertical separation between identity, reason, baseline change, location, and encounter actions.
+- Ask SAGE uses the Sparkles icon in More and in the “Ask in plain language” introduction. Its voice-record control sits directly beside the question Submit button and shows the active recording state inline.
+- Encounter Notes Scribe-progress callouts align the clock icon with the first line of the progress text.
+- An off-site Shift encounter always presents a disabled “Start Encounter,” never “Continue Encounter,” even if stale persisted data marks it in progress. Continue is shown only when the encounter is in progress and the Provider is at that resident’s facility; enforce the same rule in Visit details.
