@@ -32,10 +32,10 @@ When implementing from a selected generated mock, treat that image as the source
 - Seed enough residents, encounters, messages, timeline events, actions, assignments, and schedule items to make each facility feel operational rather than empty.
 - Encounter types include the complete original SAGE visit-type list; add any additional visit types supplied by the product owner without removing the original set.
 - Ending a provider encounter uses “End visit and send to Scribe.” The new encounter is prioritized at the top of Needs Review as a locked “Sent to Scribe” item. It never returns automatically or on a short timer; Provider review remains unavailable until a separate Scribe completion returns it.
-- Review Encounter Notes must reproduce the provider's captured text and voice transcript as separate entries and must never contain encounter orders. Notes displays historical revision records but does not offer Request revision.
+- Review Encounter Notes must reproduce the Provider’s single final Visit note exactly as written, whether it was typed or voice-transcribed, and must never contain encounter orders. Notes displays historical revision records but does not offer Request revision.
 - Encounter orders captured during a visit appear in Assessment & Plan.
 - Code Status uses the same plain field treatment as other review data, without a nested highlighted card.
-- Encounter voice recording shows its timer and Stop action only in the existing Voice Note row; do not show the global recording banner at the same time.
+- Encounter voice recording shows its timer and Stop action only inside the unified Visit note control; do not show the global recording banner at the same time.
 - The visit-type selector includes the 24 original SAGE types followed by the 53 product-owner additions, in supplied order.
 - Header Back must restore the actual previously visited screen rather than always closing to a root tab; preserve Messages type, Review filter, resident detail tab, and schedule week across nested navigation.
 - Push Notifications uses a standard 18 × 18 checkbox while the complete preference row remains the touch target.
@@ -84,7 +84,7 @@ When implementing from a selected generated mock, treat that image as the source
 - Review and Sign shows Service Date, Visit type, Facility, and Provider before the clinical sections. The SAGE Summary ends with: “A reading aid, not part of the note — what you sign is the full note below, exactly as written.”
 - Opening any Review and Sign sheet, including Request revision, temporarily hides the docked billing action so the sheet's primary action remains fully visible and tappable.
 - Ask SAGE supports an inline audio-record action that transcribes and submits a spoken question without also showing the global recording banner.
-- In-progress Encounters use a larger Visit note field and a prominent full-width Voice note capture. Stopping a recording reveals an editable transcription directly below the capture.
+- In-progress Encounters use one larger Visit note textarea for both typing and voice transcription. Recording writes its transcript into that same textarea; if the field already contains text, recording requires an explicit warning that stopping the recording will overwrite the existing note.
 - Locked Scribe queue cards use a calm hierarchy with one status badge, one clock icon, and one concise Scribe-progress message; do not repeat the same state through multiple icons or metadata lines.
 - Conversation headers are the single action surface: care rooms show the live member count plus Voice Call, Video Call, and a three-dot menu containing Add people and View resident profile; direct messages show “Direct message” plus Voice Call and Video Call. Long room and person names truncate with an ellipsis.
 - Voice and video call transcriptions use chronological, speaker-attributed dialogue. The signed-in participant is labeled “You”; private calls alternate with the other person, while group and care-room calls use actual thread members.
