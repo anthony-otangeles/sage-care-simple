@@ -183,6 +183,34 @@ input:focus-visible {
   pointer-events: none;
   background: rgba(28, 25, 46, 0.18);
   border-radius: 999px;
+  opacity: 0;
+  transition: top 180ms ease, bottom 180ms ease, opacity 120ms ease;
+}
+
+.custom-scrollbar.visible {
+  opacity: 1;
+}
+
+.app-scrollbar {
+  top: 78px;
+  bottom: 80px;
+}
+
+.app-scrollbar.task-scrollbar {
+  top: 84px;
+  bottom: 8px;
+}
+
+.app-scrollbar.review-dock-visible {
+  bottom: 86px;
+}
+
+.app-scrollbar.header-released {
+  top: 8px;
+}
+
+.app-scrollbar.bottom-released {
+  bottom: 8px;
 }
 
 .custom-scrollbar > span {
@@ -6955,6 +6983,20 @@ select,
 
   .app-scroll-region.nav-hidden {
     bottom: 0;
+  }
+
+  .app-scrollbar,
+  .app-scrollbar.root-scrollbar.header-released {
+    top: 88px;
+    bottom: 8px;
+  }
+
+  .app-scrollbar.review-scrollbar.header-released {
+    top: 8px;
+  }
+
+  .app-scrollbar.review-dock-visible {
+    bottom: 89px;
   }
 
   .bottom-nav {

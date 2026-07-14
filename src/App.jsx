@@ -73,6 +73,7 @@ const STORAGE_VERSION = "sage.simple.functional.v9";
 const reviewableStatuses = new Set(["needs-review"]);
 const scribeStatuses = new Set(["scribe-in-progress", "revision"]);
 const reviewQueueStatuses = new Set([...scribeStatuses, ...reviewableStatuses]);
+const facilityScopedModuleTypes = new Set(["reviews", "schedule", "actions", "debrief", "sage"]);
 const loginAccounts = {
   "provider@sage.com": "provider",
   "don@sage.com": "don",
@@ -209,10 +210,12 @@ function SageMark() {
 
 function ScrollIndicator({ targetRef, className = "" }) {
   const [thumb, setThumb] = useState({ visible: false, height: 0, offset: 0 });
+  const trackRef = useRef(null);
 
   useEffect(() => {
     const target = targetRef.current;
-    if (!target) return undefined;
+    const track = trackRef.current;
+    if (!target || !track) return undefined;
     let animationFrame = 0;
 
     const update = () => {
@@ -220,14 +223,14 @@ function ScrollIndicator({ targetRef, className = "" }) {
       animationFrame = window.requestAnimationFrame(() => {
         const viewportHeight = target.clientHeight;
         const scrollHeight = target.scrollHeight;
+        const trackHeight = track.clientHeight;
         const maxScroll = Math.max(0, scrollHeight - viewportHeight);
-        if (viewportHeight <= 0 || maxScroll <= 2) {
+        if (viewportHeight <= 0 || trackHeight <= 0 || maxScroll <= 2) {
           setThumb((current) => current.visible ? { visible: false, height: 0, offset: 0 } : current);
           return;
         }
 
-        const trackHeight = Math.max(0, viewportHeight - 16);
-        const height = Math.max(36, Math.round(trackHeight * (viewportHeight / scrollHeight)));
+        const height = Math.min(trackHeight, Math.max(36, Math.round(trackHeight * (viewportHeight / scrollHeight))));
         const availableTravel = Math.max(0, trackHeight - height);
         const scrollTop = Math.min(maxScroll, Math.max(0, target.scrollTop));
         const offset = Math.round((scrollTop / maxScroll) * availableTravel);
@@ -241,6 +244,7 @@ function ScrollIndicator({ targetRef, className = "" }) {
     const observeSize = () => {
       resizeObserver.disconnect();
       resizeObserver.observe(target);
+      resizeObserver.observe(track);
       [...target.children].forEach((child) => resizeObserver.observe(child));
     };
     const mutationObserver = new MutationObserver(() => {
@@ -265,8 +269,7 @@ function ScrollIndicator({ targetRef, className = "" }) {
     };
   }, [targetRef]);
 
-  if (!thumb.visible) return null;
-  return <div className={`custom-scrollbar ${className}`.trim()} aria-hidden="true"><span style={{ height: `${thumb.height}px`, transform: `translate3d(0, ${thumb.offset}px, 0)` }} /></div>;
+  return <div ref={trackRef} className={`custom-scrollbar ${className}${thumb.visible ? " visible" : ""}`.trim()} aria-hidden="true"><span style={{ height: `${thumb.height}px`, transform: `translate3d(0, ${thumb.offset}px, 0)` }} /></div>;
 }
 
 function AppHeader({ role, module, hidden, onBack, onAskSage }) {
@@ -1652,8 +1655,6 @@ export function App() {
   }
   function switchFacility(nextFacilityId) {
     setFacilityId(nextFacilityId);
-    setModule(null);
-    setNavigationHistory([]);
     setSheet(null);
     setBottomNavHidden(false);
     setHeaderHidden(false);
@@ -1973,16 +1974,25 @@ export function App() {
 
   const showReviewSignDock = role === "provider" && activeReviewEncounter && reviewableStatuses.has(activeReviewEncounter.status) && !sheet;
   const reviewChromeHidden = module?.type === "review" && headerHidden;
+  const showFacilityScope = !module || facilityScopedModuleTypes.has(module.type);
+  const appScrollbarClass = [
+    "app-scrollbar",
+    module ? "task-scrollbar" : "root-scrollbar",
+    module?.type === "review" ? "review-scrollbar" : "",
+    ((!module && headerHidden) || reviewChromeHidden) ? "header-released" : "",
+    ((!module && bottomNavHidden) || reviewChromeHidden) ? "bottom-released" : "",
+    showReviewSignDock && !reviewChromeHidden ? "review-dock-visible" : "",
+  ].filter(Boolean).join(" ");
 
   return (
     <main className="prototype-stage"><div className={`mobile-prototype full-app font-size-${fontSize}`}>
       <DesktopNav role={role} activeTab={activeTab} onChange={goToRootTab} onProfile={() => openTask("settings")} />
       <AppHeader role={role} module={activeModuleMeta} hidden={(!module || module.type === "review") && headerHidden} onBack={closeTask} onAskSage={() => openTask("sage")} />
       <div ref={scrollRegionRef} className={`app-scroll-region${module ? " task-region" : ""}${showReviewSignDock ? " review-sign-active" : ""}${!module && bottomNavHidden ? " nav-hidden" : ""}${(!module && headerHidden) || reviewChromeHidden ? " header-hidden" : ""}`} onScroll={handleAppScroll}>
-        {!module && <FacilityScopeCards role={role} activeFacilityId={facilityId} encounters={encounters} location={providerLocation} onSelect={switchFacility} />}
+        {showFacilityScope && <FacilityScopeCards role={role} activeFacilityId={facilityId} encounters={encounters} location={providerLocation} onSelect={switchFacility} />}
         {module ? moduleContent : rootContent}
       </div>
-      <ScrollIndicator targetRef={scrollRegionRef} className="app-scrollbar" />
+      <ScrollIndicator targetRef={scrollRegionRef} className={appScrollbarClass} />
       {!module && <BottomNav role={role} activeTab={activeTab} hidden={bottomNavHidden} onChange={goToRootTab} />}
       {showReviewSignDock && <div className={`review-sign-dock${reviewChromeHidden ? " hidden" : ""}`}><button type="button" onClick={() => requestEncounterSignature(activeReviewEncounter)}><ShieldCheck aria-hidden="true" />Sign and Submit for billing</button></div>}
 

@@ -204,7 +204,7 @@ await clickSelector('[data-workspace-facility="all"]', "All Facilities card");
 const dimensions = await evaluate(`({ viewport: [innerWidth, innerHeight], bodyWidth: document.body.scrollWidth, appWidth: document.querySelector(".mobile-prototype").clientWidth })`);
 assertion(dimensions.viewport[0] === 390 && dimensions.bodyWidth === 390 && dimensions.appWidth === 390, "390px mobile layout has no page-level horizontal overflow");
 assertion((await evaluate("document.querySelector('.app-header').getBoundingClientRect().height")) === 70, "Primary header uses the compact 70px treatment");
-assertion((await evaluate("(() => { const region = document.querySelector('.app-scroll-region'); const bar = document.querySelector('.custom-scrollbar.app-scrollbar'); const rect = bar?.getBoundingClientRect(); return region.scrollHeight > region.clientHeight && rect && rect.width === 4 && Math.round(rect.right) === innerWidth - 4 && bar.firstElementChild.getBoundingClientRect().height >= 36; })()")), "Long app pages expose a persistent app-rendered scrollbar at the right edge");
+assertion((await evaluate("(() => { const region = document.querySelector('.app-scroll-region'); const bar = document.querySelector('.custom-scrollbar.app-scrollbar'); const header = document.querySelector('.app-header').getBoundingClientRect(); const nav = document.querySelector('.bottom-nav').getBoundingClientRect(); const rect = bar?.getBoundingClientRect(); return region.scrollHeight > region.clientHeight && rect && rect.width === 4 && Math.round(rect.right) === innerWidth - 4 && rect.top > header.bottom && rect.bottom < nav.top && bar.firstElementChild.getBoundingClientRect().height >= 36; })()")), "Long app pages expose a persistent right-edge scrollbar only between the header and bottom navigation");
 await clickSelector('[data-workspace-facility="all"]', "active All facilities scope card");
 const toastBeforeChromeHides = await evaluate("Math.round(innerHeight - document.querySelector('.toast').getBoundingClientRect().bottom)");
 const scrollViewportBefore = await evaluate("(() => { const rect = document.querySelector('.app-scroll-region').getBoundingClientRect(); return { top: rect.top, bottom: rect.bottom, height: rect.height }; })()");
@@ -212,6 +212,7 @@ await evaluate("document.querySelector('.app-scroll-region').scrollTop = 420");
 await wait(220);
 assertion((await evaluate("document.querySelector('.bottom-nav')?.classList.contains('hidden')")), "Bottom navigation hides while the user scrolls down");
 assertion((await evaluate("document.querySelector('.app-header')?.classList.contains('hidden')")), "Primary header hides while the user scrolls down");
+assertion((await evaluate("(() => { const rect = document.querySelector('.app-scrollbar').getBoundingClientRect(); return Math.round(rect.top) === 8 && Math.round(innerHeight - rect.bottom) === 8; })()")), "The app scrollbar expands into the space released by hidden mobile chrome");
 const toastAfterChromeHides = await evaluate("Math.round(innerHeight - document.querySelector('.toast').getBoundingClientRect().bottom)");
 assertion(toastBeforeChromeHides >= 80 && toastAfterChromeHides >= 10 && toastAfterChromeHides <= 16, "Toast notices retract to the visible bottom inset as mobile navigation hides");
 const scrollViewportAfter = await evaluate("(() => { const rect = document.querySelector('.app-scroll-region').getBoundingClientRect(); return { top: rect.top, bottom: rect.bottom, height: rect.height }; })()");
@@ -227,6 +228,10 @@ assertion(!(await evaluate("document.querySelector('.bottom-nav')?.classList.con
 assertion(!(await evaluate("document.querySelector('.app-header')?.classList.contains('hidden')")), "Primary header returns when the user scrolls back to the top");
 
 await clickSelector('.review-note', "review queue");
+assertion((await evaluate("document.querySelectorAll('.facility-scope-card').length")) === 5, "Encounter Notes keeps the facility selector visible because its queue is facility-filtered");
+await clickSelector('[data-workspace-facility="elkhart"]', "Encounter Notes Elkhart facility scope");
+assertion((await text()).includes("Encounter notes") && (await evaluate("document.querySelector('[data-workspace-facility=\"elkhart\"]')?.getAttribute('aria-pressed')")) === "true", "Changing facility keeps Encounter Notes open and updates its active scope");
+await clickSelector('[data-workspace-facility="all"]', "Encounter Notes All facilities scope");
 assertion((await evaluate("document.querySelector('.queue-count')?.innerText")) === "5", "Review queue shows five independent pending encounters");
 assertion((await evaluate("document.querySelectorAll('.queue-list > button').length")) === 5, "Needs Review filter lists every pending encounter");
 assertion((await evaluate("(() => { const list = document.querySelector('.queue-list'); const card = list.querySelector(':scope > button'); const listStyle = getComputedStyle(list); const cardStyle = getComputedStyle(card); return listStyle.display === 'grid' && parseFloat(listStyle.rowGap) >= 8 && cardStyle.backgroundColor === 'rgb(255, 255, 255)' && cardStyle.borderStyle === 'solid' && parseFloat(cardStyle.borderRadius) >= 10; })()")), "Needs review items are individually separated cards");
@@ -256,6 +261,7 @@ const reviewBackgrounds = await evaluate("[getComputedStyle(document.querySelect
 assertion(reviewBackgrounds[0] === "rgb(245, 246, 248)" && reviewBackgrounds[1] === "rgb(255, 255, 255)", "Review and Sign uses a subtle gray content background with white encounter sections");
 const reviewDock = await evaluate("(() => { const dock = document.querySelector('.review-sign-dock'); const rect = dock.getBoundingClientRect(); return { text: dock.innerText, bottom: Math.round(rect.bottom), viewport: innerHeight }; })()");
 assertion(reviewDock.text.includes("Sign and Submit for billing") && reviewDock.bottom === reviewDock.viewport, "Sign and Submit for billing stays docked at the bottom of Review and Sign");
+assertion((await evaluate("(() => { const bar = document.querySelector('.app-scrollbar').getBoundingClientRect(); const header = document.querySelector('.task-header').getBoundingClientRect(); const dock = document.querySelector('.review-sign-dock').getBoundingClientRect(); return bar.top > header.bottom && bar.bottom < dock.top; })()")), "Review and Sign keeps its scrollbar between the header and billing dock");
 await evaluate("document.querySelector('.app-scroll-region').scrollTop = 420");
 await wait(220);
 assertion((await evaluate("document.querySelector('.task-header').classList.contains('hidden')")) && (await evaluate("document.querySelector('.review-sign-dock').classList.contains('hidden')")), "Review and Sign hides both its header and complete billing dock while scrolling down");
@@ -573,6 +579,7 @@ await clickText("More", true);
 assertion((await evaluate("Boolean(document.querySelector('.logout-row'))")), "Provider More includes Logout");
 assertion((await evaluate("(() => { const row = [...document.querySelectorAll('.tool-row')].find((item) => item.innerText.includes('Ask Sage')); return Boolean(row?.querySelector('.lucide-sparkles')); })()")), "More uses the Sparkles icon for Ask Sage");
 await clickText("Schedule");
+assertion((await evaluate("document.querySelectorAll('.facility-scope-card').length")) === 5, "Schedule keeps the facility selector visible because its content is facility-filtered");
 assertion((await text()).includes("Previous") && (await text()).includes("Next"), "Weekly schedule includes week navigation");
 assertion((await evaluate("document.querySelectorAll('.schedule-day-picker [role=tab]').length")) === 7 && (await evaluate("document.querySelector('.schedule-day-picker [aria-selected=true]')?.dataset.scheduleDate")) === "2026-07-13", "Schedule opens with a seven-day picker and Today selected");
 assertion((await evaluate("document.querySelectorAll('.schedule-facility-toggle').length")) === 4, "Schedule renders only the selected day’s facility accordions");
@@ -603,6 +610,7 @@ assertion((await evaluate("document.querySelector('.schedule-view .eyebrow')?.te
 
 await clickSelector('[aria-label="Go back"]', "schedule Back button");
 await clickSelector('.ask-sage-button', "header Ask SAGE shortcut");
+assertion((await evaluate("document.querySelectorAll('.facility-scope-card').length")) === 5, "Ask SAGE keeps the facility selector visible because its workspace context is facility-filtered");
 assertion((await evaluate("Boolean(document.querySelector('.sage-intro .lucide-sparkles'))")), "Ask in plain language uses the Sparkles icon");
 assertion((await evaluate("(() => { const record = document.querySelector('.sage-composer .sage-audio-record'); return Boolean(record && record.nextElementSibling?.type === 'submit' && getComputedStyle(record.closest('form')).gridTemplateColumns.split(' ').length === 3); })()")), "Ask SAGE places voice recording directly beside the submit button");
 await clickText("Who needs attention first?", true);
@@ -635,6 +643,7 @@ const roleFacilityCoverage = await evaluate(`(() => {
 assertion(Object.values(roleFacilityCoverage.actions).every((count) => count >= 2) && Object.keys(roleFacilityCoverage.actions).length === 4, "DON has at least two seeded actions in every facility");
 assertion(Object.values(roleFacilityCoverage.assignments).every((count) => count >= 2) && Object.keys(roleFacilityCoverage.assignments).length === 4, "CNA has at least two seeded assignments in every facility");
 await clickText("team actions are open");
+assertion((await evaluate("document.querySelectorAll('.facility-scope-card').length")) === 5, "Team Actions keeps the facility selector visible because its list is facility-filtered");
 await clickText("Assign a new action", true);
 await setControl('.sheet-form select', "mary");
 await setControl('.sheet-form input', "Check hydration plan");
@@ -669,6 +678,7 @@ await clickSelector('[data-workspace-facility="casa-hobart"]', "CNA Casa of Hoba
 assertion((await text()).includes("0 of 2 resident updates captured") && (await text()).includes("Next resident"), "CNA has a useful two-resident shift in Casa of Hobart");
 await clickSelector('[data-workspace-facility="all"]', "CNA All Facilities card");
 await clickText("Capture resident update", true);
+assertion((await evaluate("document.querySelectorAll('.facility-scope-card').length")) === 5, "Shift Debrief keeps the facility selector visible because its assignments are facility-filtered");
 await clickText("Start voice capture", true);
 await wait(1050);
 await clickSelector('.recording-banner button', "debrief Stop button");
