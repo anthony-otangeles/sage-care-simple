@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build --outDir dist/client && node scripts/build-sites.mjs",
     "smoke": "node scripts/smoke-functional.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview --outDir dist/client"
   },
   "dependencies": {
     "@vitejs/plugin-react": "5.0.4",
