@@ -92,7 +92,7 @@ const initialTwoFactorSettings = {
 const residentStatusRank = { Declining: 0, Watchful: 1, "New admission": 2, Stable: 3 };
 const deviationSeverityRank = { Urgent: 0, High: 1, Moderate: 2, Mild: 3 };
 const SHIFT_DEVIATION_MIGRATION = `${STORAGE_VERSION}.shift-deviations-v2`;
-const CLARIFICATION_REQUEST_MIGRATION = `${STORAGE_VERSION}.provider-clarification-v1`;
+const CLARIFICATION_REQUEST_MIGRATION = `${STORAGE_VERSION}.provider-clarification-v3`;
 const DEMO_PROVIDER_LOCATION = {
   status: "ready",
   coords: { latitude: 41.659507, longitude: -85.980714 },
@@ -784,6 +784,50 @@ function ClarificationResponse({ encounter, onSubmit }) {
   const facility = facilities.find((item) => item.id === resident.facilityId);
   const request = encounter.clarificationRequest;
   const [answer, setAnswer] = useState(request.response ?? "");
+  const [selectedResponseId, setSelectedResponseId] = useState("");
+  const [otherMode, setOtherMode] = useState("type");
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [hasTranscript, setHasTranscript] = useState(false);
+  const [showAllMedications, setShowAllMedications] = useState(false);
+
+  useEffect(() => {
+    if (!isRecording) return undefined;
+    const timer = window.setInterval(() => setRecordingSeconds((seconds) => seconds + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [isRecording]);
+
+  function chooseResponse(option) {
+    setSelectedResponseId(option.id);
+    setAnswer(option.answer ?? "");
+    setIsRecording(false);
+    setRecordingSeconds(0);
+    setHasTranscript(false);
+    if (option.id === "other") setOtherMode("type");
+  }
+
+  function selectOtherMode(mode) {
+    setOtherMode(mode);
+    setIsRecording(false);
+    setRecordingSeconds(0);
+    if (mode === "voice") {
+      setAnswer("");
+      setHasTranscript(false);
+    }
+  }
+
+  function toggleOtherRecording() {
+    if (!isRecording) {
+      setAnswer("");
+      setHasTranscript(false);
+      setRecordingSeconds(0);
+      setIsRecording(true);
+      return;
+    }
+    setIsRecording(false);
+    setHasTranscript(true);
+    setAnswer("The correct medication instruction is different from both listed options. Please contact me directly before updating this section.");
+  }
 
   function submit(event) {
     event.preventDefault();
@@ -795,23 +839,72 @@ function ClarificationResponse({ encounter, onSubmit }) {
     <section className="task-content clarification-response">
       <section className="clarification-intro">
         <span><MessageSquare /></span>
-        <div><small>Provider response needed</small><h1>Your Scribe needs one answer</h1><p>The encounter stays locked while this question is open. Your answer returns to the assigned Scribe so work can continue.</p></div>
+        <div><small>One response needed</small><h1>Please confirm one medication detail</h1><p>Review the two records below, choose the correct answer, and send it back to your Scribe.</p></div>
       </section>
-      <section className="clarification-context" aria-label="Encounter context">
-        <div><small>Resident</small><strong>{resident.name}</strong></div>
-        <div><small>Facility</small><strong>{facility.name}</strong></div>
-        <div><small>Visit</small><strong>{encounter.type} · {formatDate(encounter.date)}</strong></div>
-        <div><small>Requested by</small><strong>{request.requestedBy} · {request.requestedAt}</strong></div>
+
+      <section className="clarification-patient-card" aria-label="Encounter context">
+        <ResidentInitials name={resident.name} />
+        <div className="clarification-patient-identity"><h2>{resident.name}</h2><p>Room {resident.room} · {facility.name}</p></div>
+        <div className="clarification-visit-context"><span><small>Visit</small><strong>{encounter.type} · {formatDate(encounter.date)}</strong></span><span><small>Reason for visit</small><strong>{encounter.reason}</strong></span></div>
       </section>
+
       <section className="clarification-question-card">
-        <header><span>{request.sectionLabel}</span><small>Section-scoped clarification</small></header>
-        <p>{request.question}</p>
-        <div><Clock3 /><span>Routed through {request.routedVia}</span></div>
+        <div className="clarification-step-label"><span>1</span> Review the question</div>
+        <header><span>{request.sectionLabel}</span><small>Requested by {request.requestedBy}</small></header>
+        <h2>{request.prompt ?? request.question}</h2>
+        <p>{request.conflictReason ?? request.question}</p>
+        <div><Clock3 /><span>{request.requestedAt} · Routed through {request.routedVia}</span></div>
       </section>
+
+      <details className="clarification-evidence">
+        <summary><span><FileText /><span><small>{request.evidence?.length ?? 0} conflicting source records</small><strong>Review the records used for this question</strong></span></span><ChevronRight /></summary>
+        <div className="clarification-evidence-body">
+          <header><div><small>Source records</small><h2>Compare these two records</h2></div><span>Dates are shown below</span></header>
+          <div className="clarification-evidence-grid">
+            {(request.evidence ?? []).map((source) => <article key={source.id}>
+              <header><span>{source.label}</span></header>
+              <strong>{source.value}</strong>
+              <time>{source.recordedAt}</time>
+              <p>{source.detail}</p>
+            </article>)}
+          </div>
+        </div>
+      </details>
+
+      <details className="clarification-full-context">
+        <summary><span><Eye /><span><strong>Need more context?</strong><small>View the read-only draft and all {encounter.sections.length} encounter sections</small></span></span><ChevronRight /></summary>
+        <div className="clarification-full-context-body">
+          <section className="clarification-summary">
+            <span><Sparkles /></span>
+            <div><small>SAGE summary · reading aid</small><strong>{resident.name} was evaluated for {encounter.reason.toLowerCase()}.</strong><p>{resident.summary} Review the full working note below for surrounding clinical context.</p></div>
+          </section>
+          <div className="document-sections">
+            {encounter.sections.map((section) => <article key={section.id} className={`document-section document-section-${section.id}${section.id === request.sectionId ? " clarification-target" : ""}`}>
+              <header className="document-section-head"><strong>{section.title}</strong>{section.id === request.sectionId && <span className="new">Question applies here</span>}</header>
+              <div className="document-section-body"><ClinicalSectionContent section={section} showAllMedications={showAllMedications} onToggleMedications={() => setShowAllMedications((expanded) => !expanded)} /></div>
+            </article>)}
+          </div>
+        </div>
+      </details>
+
       <form className="clarification-response-form" onSubmit={submit}>
-        <label><span>Answer for Scribe</span><textarea autoFocus value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Confirm the correct fact and, when possible, name the source you used…" /></label>
-        <p><ShieldCheck />Only answer what you can confirm. The Scribe will update and recheck the note before returning it for signature.</p>
-        <button className="primary-wide" type="submit" disabled={!answer.trim()}><Send />Send answer to Scribe</button>
+        <header className="clarification-response-heading"><div className="clarification-step-label"><span>2</span> Choose your answer</div><h2>What should the Scribe use?</h2><p>Select one option. Nothing is sent until you press the final button.</p></header>
+        <fieldset className="clarification-response-options" aria-label="Clarification answers">{(request.responseOptions ?? []).map((option) => <button key={option.id} type="button" className={selectedResponseId === option.id ? "selected" : ""} aria-pressed={selectedResponseId === option.id} onClick={() => chooseResponse(option)}><span className="clarification-option-check">{selectedResponseId === option.id && <Check />}</span><span className="clarification-option-copy"><strong>{option.label}</strong><small>{option.detail}</small></span></button>)}</fieldset>
+
+        {selectedResponseId && selectedResponseId !== "other" && <section className="clarification-answer-preview" aria-live="polite"><small>Your answer to Scribe</small><p>{answer}</p></section>}
+
+        {selectedResponseId === "other" && <section className="clarification-other-composer">
+          <header><div><small>Other answer</small><h3>Add a different response</h3></div></header>
+          <div className="clarification-other-modes" role="tablist" aria-label="Other answer input method"><button type="button" role="tab" aria-selected={otherMode === "type"} className={otherMode === "type" ? "active" : ""} onClick={() => selectOtherMode("type")}><FileText />Type answer</button><button type="button" role="tab" aria-selected={otherMode === "voice"} className={otherMode === "voice" ? "active" : ""} onClick={() => selectOtherMode("voice")}><Mic />Record &amp; transcribe</button></div>
+          {otherMode === "type" && <label><span>Type your answer</span><textarea autoFocus value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Enter the confirmed instruction and, when possible, the source you checked…" /></label>}
+          {otherMode === "voice" && <div className="clarification-voice-composer">
+            <div className={`clarification-voice-recorder${isRecording ? " recording" : ""}`}><span>{isRecording ? <Square /> : <Mic />}</span><div><strong>{isRecording ? `Recording · ${recordingSeconds}s` : hasTranscript ? "Transcript ready" : "Record your answer"}</strong><small>{isRecording ? "Speak clearly, then press Stop recording." : hasTranscript ? "Review and edit the transcript before sending." : "Your recording becomes editable text before it is sent."}</small></div><button type="button" className={isRecording ? "recording" : ""} onClick={toggleOtherRecording}>{isRecording ? <><Square />Stop recording</> : <><Mic />{hasTranscript ? "Record again" : "Start recording"}</>}</button></div>
+            {hasTranscript && <label><span>Audio transcript · editable</span><textarea value={answer} onChange={(event) => setAnswer(event.target.value)} /></label>}
+          </div>}
+        </section>}
+
+        <p className="clarification-safety-note"><ShieldCheck />Only confirm information you can verify. Choose “Unable to confirm” when the records are not enough.</p>
+        <button className="primary-wide clarification-submit" type="submit" disabled={!answer.trim() || isRecording}><Send />Send confirmed answer to Scribe</button>
       </form>
     </section>
   );
@@ -1485,7 +1578,7 @@ export function App() {
   useEffect(() => {
     if (window.localStorage.getItem(CLARIFICATION_REQUEST_MIGRATION)) return;
     const seededRequest = initialEncounters.find((encounter) => encounter.id === "review-margaret");
-    setEncounters((items) => items.map((encounter) => encounter.id === seededRequest?.id && encounter.status === "needs-review"
+    setEncounters((items) => items.map((encounter) => encounter.id === seededRequest?.id && ["needs-review", "clarification-requested", "clarification-response-sent"].includes(encounter.status)
       ? { ...encounter, status: seededRequest.status, scribeCompletedAt: null, clarificationRequest: deepCopy(seededRequest.clarificationRequest) }
       : encounter));
     window.localStorage.setItem(CLARIFICATION_REQUEST_MIGRATION, "complete");
