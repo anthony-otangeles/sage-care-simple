@@ -71,8 +71,10 @@ import {
 
 const STORAGE_VERSION = "sage.simple.functional.v9";
 const reviewableStatuses = new Set(["needs-review"]);
-const scribeStatuses = new Set(["scribe-in-progress", "revision"]);
-const reviewQueueStatuses = new Set([...scribeStatuses, ...reviewableStatuses]);
+const clarificationStatuses = new Set(["clarification-requested"]);
+const providerActionableStatuses = new Set([...reviewableStatuses, ...clarificationStatuses]);
+const scribeStatuses = new Set(["scribe-in-progress", "revision", "clarification-response-sent"]);
+const reviewQueueStatuses = new Set([...scribeStatuses, ...providerActionableStatuses]);
 const facilityScopedModuleTypes = new Set(["reviews", "schedule", "actions", "debrief", "sage"]);
 const loginAccounts = {
   "provider@sage.com": "provider",
@@ -90,6 +92,7 @@ const initialTwoFactorSettings = {
 const residentStatusRank = { Declining: 0, Watchful: 1, "New admission": 2, Stable: 3 };
 const deviationSeverityRank = { Urgent: 0, High: 1, Moderate: 2, Mild: 3 };
 const SHIFT_DEVIATION_MIGRATION = `${STORAGE_VERSION}.shift-deviations-v2`;
+const CLARIFICATION_REQUEST_MIGRATION = `${STORAGE_VERSION}.provider-clarification-v1`;
 const DEMO_PROVIDER_LOCATION = {
   status: "ready",
   coords: { latitude: 41.659507, longitude: -85.980714 },
@@ -124,6 +127,8 @@ function prettyStatus(status) {
     "provider-in-progress": "In progress",
     "scribe-in-progress": "Sent to Scribe",
     "needs-review": "Needs review",
+    "clarification-requested": "Clarification requested",
+    "clarification-response-sent": "Response sent to Scribe",
     revision: "Revision sent to Scribe",
     "submitted-to-billing": "Done",
     open: "Open",
@@ -400,7 +405,7 @@ function ProviderHome({ encounters, location, onStart, onOpenVisit, onMessage, o
       };
     })
     .sort((a, b) => Number(b.isCurrentFacility) - Number(a.isCurrentFacility) || a.severityRank - b.severityRank || a.facility.shortName.localeCompare(b.facility.shortName));
-  const reviewCount = encounters.filter((encounter) => reviewableStatuses.has(encounter.status)).length;
+  const reviewCount = encounters.filter((encounter) => providerActionableStatuses.has(encounter.status)).length;
   const scribeCount = encounters.filter((encounter) => scribeStatuses.has(encounter.status)).length;
 
   return (
@@ -459,7 +464,7 @@ function ProviderHome({ encounters, location, onStart, onOpenVisit, onMessage, o
 
       <button className="review-note" type="button" onClick={onOpenReviews}>
         <span className="review-icon"><FileText aria-hidden="true" /></span>
-        <span>{scribeCount ? `${reviewCount} ready · ${scribeCount} sent to Scribe` : `${reviewCount} notes need your review`}</span>
+        <span>{scribeCount ? `${reviewCount} need action · ${scribeCount} sent to Scribe` : `${reviewCount} encounter item${reviewCount === 1 ? "" : "s"} need your review`}</span>
         <strong>{reviewCount ? "Review" : "View"}</strong>
         <ChevronRight aria-hidden="true" />
       </button>
@@ -545,7 +550,7 @@ function ResidentsScreen({ role, residents: visibleResidents, encounters, cnaRes
       <label className="search-field"><Search /><span className="sr-only">Search residents</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search residents" /></label>
       <div className="resident-list">
         {filtered.map((resident) => {
-          const reviewCount = encounters.filter((encounter) => encounter.residentId === resident.id && reviewableStatuses.has(encounter.status)).length;
+          const reviewCount = encounters.filter((encounter) => encounter.residentId === resident.id && providerActionableStatuses.has(encounter.status)).length;
           return (
             <button key={resident.id} className="resident-row" type="button" onClick={() => onOpenResident(resident)}>
               <ResidentInitials name={resident.name} />
@@ -728,7 +733,7 @@ function ResidentDetail({ resident, role, encounters, timelineEvents, careRoom, 
           <button className="primary-wide" type="button" onClick={onCareRoom}><MessageSquare />Open care room</button>
         </section>
       )}
-      {tab === "timeline" && <div className="timeline-list live-timeline">{timelineEvents.map((event) => { const linkedEncounter = event.sourceType === "encounter" ? encounters.find((encounter) => encounter.id === event.sourceId) : null; const waitingForScribe = scribeStatuses.has(linkedEncounter?.status); return <article key={event.id} className={`timeline-event ${event.kind}`}><span /><div><small>{event.displayTime} · {event.actor}</small><strong>{event.title}</strong><p>{event.text}</p>{event.sourceType === "encounter" && (waitingForScribe ? <span className="timeline-scribe-wait"><Clock3 />Sent to Scribe · Review not available yet</span> : <button type="button" onClick={() => onOpenReview(linkedEncounter)}>View provider note<ChevronRight /></button>)}</div></article>; })}{!timelineEvents.length && <div className="calm-empty"><Clock3 /><strong>No timeline activity yet</strong><span>Care-team activity for this resident will appear here.</span></div>}</div>}
+      {tab === "timeline" && <div className="timeline-list live-timeline">{timelineEvents.map((event) => { const linkedEncounter = event.sourceType === "encounter" ? encounters.find((encounter) => encounter.id === event.sourceId) : null; const waitingForScribe = scribeStatuses.has(linkedEncounter?.status); const needsClarification = clarificationStatuses.has(linkedEncounter?.status); return <article key={event.id} className={`timeline-event ${event.kind}`}><span /><div><small>{event.displayTime} · {event.actor}</small><strong>{event.title}</strong><p>{event.text}</p>{event.sourceType === "encounter" && (waitingForScribe ? <span className="timeline-scribe-wait"><Clock3 />Sent to Scribe · Review not available yet</span> : <button type="button" onClick={() => onOpenReview(linkedEncounter)}>{needsClarification ? "Answer clarification" : "View provider note"}<ChevronRight /></button>)}</div></article>; })}{!timelineEvents.length && <div className="calm-empty"><Clock3 /><strong>No timeline activity yet</strong><span>Care-team activity for this resident will appear here.</span></div>}</div>}
       {tab === "notes" && (
         <div className="note-history">
           {residentEncounters.map((encounter) => <button key={encounter.id} type="button" onClick={() => onOpenReview(encounter)}><span><strong>{encounter.reason}</strong><small>{formatDate(encounter.date)} · {encounter.type}</small></span><span className={`status-pill ${statusTone(prettyStatus(encounter.status))}`}>{prettyStatus(encounter.status)}</span><ChevronRight /></button>)}
@@ -743,7 +748,7 @@ function ReviewQueue({ encounters, filter, onFilter, onOpen }) {
   const filtered = encounters.filter((encounter) => {
     if (filter === "needs") return reviewQueueStatuses.has(encounter.status);
     return encounter.status === "submitted-to-billing";
-  }).sort((a, b) => Number(scribeStatuses.has(b.status)) - Number(scribeStatuses.has(a.status)));
+  }).sort((a, b) => Number(clarificationStatuses.has(b.status)) - Number(clarificationStatuses.has(a.status)) || Number(scribeStatuses.has(b.status)) - Number(scribeStatuses.has(a.status)));
   const counts = { needs: encounters.filter((item) => reviewQueueStatuses.has(item.status)).length, done: encounters.filter((item) => item.status === "submitted-to-billing").length };
   return (
     <section className="task-content review-queue">
@@ -754,19 +759,60 @@ function ReviewQueue({ encounters, filter, onFilter, onOpen }) {
         {filtered.map((encounter) => {
           const resident = residentById(encounter.residentId);
           const waitingForScribe = scribeStatuses.has(encounter.status);
-          return <button key={encounter.id} className={waitingForScribe ? "scribe-pending" : ""} type="button" disabled={waitingForScribe} onClick={() => onOpen(encounter)}>
+          const needsClarification = clarificationStatuses.has(encounter.status);
+          const scribeWaitCopy = encounter.status === "revision" ? " is editing the requested revision" : encounter.status === "clarification-response-sent" ? " is reviewing your clarification response" : " is completing the required details";
+          return <button key={encounter.id} className={`${waitingForScribe ? "scribe-pending" : ""}${needsClarification ? " clarification-request" : ""}`.trim()} type="button" disabled={waitingForScribe} onClick={() => onOpen(encounter)}>
             <ResidentInitials name={resident.name} />
             <span className="queue-row-content">
               <span className="queue-row-heading"><strong>{resident.name}</strong><span className={`status-pill ${statusTone(prettyStatus(encounter.status))}`}>{prettyStatus(encounter.status)}</span></span>
               <small className="queue-row-reason">{encounter.reason}</small>
               <em className="queue-row-meta">{formatDate(encounter.date)} · {encounter.type}</em>
-              {waitingForScribe && <span className="scribe-wait"><Clock3 /><span><strong>{encounter.assignedScribe}</strong>{encounter.status === "revision" ? " is editing the requested revision" : " is completing the required details"}</span></span>}
+              {needsClarification && <span className="clarification-question"><MessageSquare /><span><strong>{encounter.clarificationRequest.sectionLabel}</strong>{encounter.clarificationRequest.question}</span></span>}
+              {waitingForScribe && <span className="scribe-wait"><Clock3 /><span><strong>{encounter.assignedScribe}</strong>{scribeWaitCopy}</span></span>}
             </span>
             {!waitingForScribe && <ChevronRight />}
           </button>;
         })}
         {!filtered.length && <div className="calm-empty"><CheckCircle2 /><strong>Nothing in this list</strong><span>Choose another filter to see more notes.</span></div>}
       </div>
+    </section>
+  );
+}
+
+function ClarificationResponse({ encounter, onSubmit }) {
+  const resident = residentById(encounter.residentId);
+  const facility = facilities.find((item) => item.id === resident.facilityId);
+  const request = encounter.clarificationRequest;
+  const [answer, setAnswer] = useState(request.response ?? "");
+
+  function submit(event) {
+    event.preventDefault();
+    if (!answer.trim()) return;
+    onSubmit(answer.trim());
+  }
+
+  return (
+    <section className="task-content clarification-response">
+      <section className="clarification-intro">
+        <span><MessageSquare /></span>
+        <div><small>Provider response needed</small><h1>Your Scribe needs one answer</h1><p>The encounter stays locked while this question is open. Your answer returns to the assigned Scribe so work can continue.</p></div>
+      </section>
+      <section className="clarification-context" aria-label="Encounter context">
+        <div><small>Resident</small><strong>{resident.name}</strong></div>
+        <div><small>Facility</small><strong>{facility.name}</strong></div>
+        <div><small>Visit</small><strong>{encounter.type} · {formatDate(encounter.date)}</strong></div>
+        <div><small>Requested by</small><strong>{request.requestedBy} · {request.requestedAt}</strong></div>
+      </section>
+      <section className="clarification-question-card">
+        <header><span>{request.sectionLabel}</span><small>Section-scoped clarification</small></header>
+        <p>{request.question}</p>
+        <div><Clock3 /><span>Routed through {request.routedVia}</span></div>
+      </section>
+      <form className="clarification-response-form" onSubmit={submit}>
+        <label><span>Answer for Scribe</span><textarea autoFocus value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Confirm the correct fact and, when possible, name the source you used…" /></label>
+        <p><ShieldCheck />Only answer what you can confirm. The Scribe will update and recheck the note before returning it for signature.</p>
+        <button className="primary-wide" type="submit" disabled={!answer.trim()}><Send />Send answer to Scribe</button>
+      </form>
     </section>
   );
 }
@@ -1437,6 +1483,15 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (window.localStorage.getItem(CLARIFICATION_REQUEST_MIGRATION)) return;
+    const seededRequest = initialEncounters.find((encounter) => encounter.id === "review-margaret");
+    setEncounters((items) => items.map((encounter) => encounter.id === seededRequest?.id && encounter.status === "needs-review"
+      ? { ...encounter, status: seededRequest.status, scribeCompletedAt: null, clarificationRequest: deepCopy(seededRequest.clarificationRequest) }
+      : encounter));
+    window.localStorage.setItem(CLARIFICATION_REQUEST_MIGRATION, "complete");
+  }, []);
+
+  useEffect(() => {
     if (!recording) return undefined;
     const timer = window.setInterval(() => setRecording((current) => current ? { ...current, seconds: current.seconds + 1 } : current), 1000);
     return () => window.clearInterval(timer);
@@ -1540,6 +1595,10 @@ export function App() {
   }
   function openResident(resident) { setResidentTab("summary"); openTask("resident", { residentId: resident.id }); }
   function openReview(encounter) {
+    if (clarificationStatuses.has(encounter?.status)) {
+      openTask("clarification", { encounterId: encounter.id });
+      return;
+    }
     if (scribeStatuses.has(encounter?.status)) {
       setReviewFilter("needs");
       openTask("reviews");
@@ -1810,6 +1869,8 @@ export function App() {
   const roleActionCount = role === "don" ? visibleActions.filter((action) => action.status !== "completed").length : visibleActions.filter((action) => action.ownerRole === role && action.status !== "completed").length;
   const activeReviewEncounter = module?.type === "review" ? encounters.find((item) => item.id === module.encounterId) : null;
   const activeReviewResident = activeReviewEncounter ? residentById(activeReviewEncounter.residentId) : null;
+  const activeClarificationEncounter = module?.type === "clarification" ? encounters.find((item) => item.id === module.encounterId) : null;
+  const activeClarificationResident = activeClarificationEncounter ? residentById(activeClarificationEncounter.residentId) : null;
   const activeThread = module?.type === "thread" ? threads.find((item) => item.id === module.threadId) : null;
   const activeThreadMemberCount = new Set(activeThread?.memberIds ?? []).size;
   const currentScheduleFacilityId = role === "provider" ? facilities.find((facility) => isAtFacility(providerLocation, facility))?.id : null;
@@ -1819,6 +1880,7 @@ export function App() {
     review: activeReviewEncounter?.status === "submitted-to-billing"
       ? { title: "Encounter note", subtitle: `${activeReviewResident?.name} · completed by ${activeReviewEncounter.assignedScribe ?? "Mark Rivera"}`, status: prettyStatus(activeReviewEncounter.status), statusTone: statusTone(prettyStatus(activeReviewEncounter.status)) }
       : { title: "Review and Sign", subtitle: activeReviewEncounter ? `${activeReviewResident?.name} · completed by ${activeReviewEncounter.assignedScribe ?? "Mark Rivera"}` : "", status: activeReviewEncounter ? prettyStatus(activeReviewEncounter.status) : "", statusTone: activeReviewEncounter ? statusTone(prettyStatus(activeReviewEncounter.status)) : "neutral" },
+    clarification: { title: "Clarification request", subtitle: activeClarificationEncounter ? `${activeClarificationResident?.name} · requested by ${activeClarificationEncounter.assignedScribe}` : "", status: "Needs response", statusTone: "warning" },
     encounter: { title: "Encounter", subtitle: residentById(encounters.find((item) => item.id === module.encounterId)?.residentId)?.name },
     thread: activeThread ? {
       title: activeThread.title,
@@ -1908,6 +1970,23 @@ export function App() {
     toast("Revision sent to Scribe for edit.");
     closeTask();
   }
+  function submitClarificationResponse(encounter, answer) {
+    const respondedAt = new Date().toISOString();
+    const next = {
+      ...encounter,
+      status: "clarification-response-sent",
+      clarificationRequest: {
+        ...encounter.clarificationRequest,
+        response: answer,
+        respondedAt,
+        respondedBy: roleProfiles.provider.name,
+      },
+    };
+    updateEncounter(next);
+    appendTimelineEvent({ residentId: encounter.residentId, kind: "provider-note", title: "Clarification response sent to Scribe", text: `${encounter.clarificationRequest.sectionLabel}: ${answer}`, actor: roleProfiles.provider.name, sourceType: "encounter", sourceId: encounter.id, status: "clarification-response-sent" });
+    toast("Answer sent to Scribe. The encounter stays locked while the note is updated.");
+    closeTask();
+  }
   function saveDebrief(assignment, draft) {
     const capturedAt = new Date().toISOString();
     const capture = { id: `capture-${Date.now()}`, text: draft.trim(), author: roleProfiles.cna.name, capturedAt };
@@ -1963,6 +2042,10 @@ export function App() {
   if (module?.type === "review") {
     const encounter = encounters.find((item) => item.id === module.encounterId);
     moduleContent = <ReviewDocument encounter={encounter} onRevision={(target) => setSheet({ type: "revision", encounterId: encounter.id, sectionId: target.id, sectionTitle: target.title, text: "", source: "text", duration: 0 })} onPlayVoice={(revision) => toast(`Playing ${revision.duration || 1}-second voice revision.`)} canEdit={role === "provider"} viewerRole={role} />;
+  }
+  if (module?.type === "clarification") {
+    const encounter = encounters.find((item) => item.id === module.encounterId);
+    moduleContent = <ClarificationResponse encounter={encounter} onSubmit={(answer) => submitClarificationResponse(encounter, answer)} />;
   }
   if (module?.type === "encounter") {
     const encounter = encounters.find((item) => item.id === module.encounterId);

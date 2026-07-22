@@ -121,3 +121,4 @@ When implementing from a selected generated mock, treat that image as the source
 - Fast or momentum scrolling must hide and restore the mobile header and bottom navigation smoothly without jitter, direction flapping, or resizing the active scroll viewport.
 - Mobile form controls must use an effective text size of at least 16px so focusing a field never triggers browser page zoom.
 - Long pages, authentication screens, and scrollable sheets use an app-rendered, persistently visible thin scrollbar at the right edge to make overflow discoverable; do not rely on mobile browser-native overlay scrollbars.
+- Scribe clarification requests appear in Encounter Notes under Needs review as Provider-actionable cards. Opening one shows the exact section-scoped question, and sending an answer locks the encounter as Response sent to Scribe until the Scribe resumes the note workflow.

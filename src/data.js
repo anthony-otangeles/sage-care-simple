@@ -474,7 +474,7 @@ export const initialEncounters = [
   { id: "done-mary", residentId: "mary", date: "2026-07-05", time: "10:30", meridiem: "AM", type: "Follow-up", status: "submitted-to-billing", priority: "Routine", reason: "Medication follow-up", change: "Stable", sections: completedDocumentSections("mary", "Medication follow-up"), signedAt: "Jul 5 · 11:02 AM", signedSignature: providerSignatureSnapshot("Jul 5 · 11:02 AM") },
   { id: "tomorrow-beatrice", residentId: "beatrice", date: "2026-07-14", time: "8:30", meridiem: "AM", type: "Follow-up", status: "scheduled", priority: "High", deviationSeverity: "High", reason: "Recurrent chest tightness", change: "Chest tightness recurred during morning care after being absent at baseline.", changeObservedAt: "Tuesday · 7:45 AM", sections: documentSections("beatrice", "Recurrent chest tightness") },
   { id: "tomorrow-eduardo", residentId: "eduardo", date: "2026-07-14", time: "10:00", meridiem: "AM", type: "Acute", status: "scheduled", priority: "High", deviationSeverity: "High", reason: "Acute nutrition and intake decline", change: "Meal intake remained below 50% for two days, down from his usual intake.", changeObservedAt: "Sunday · 8:00 AM", sections: documentSections("eduardo", "Acute nutrition and intake decline") },
-  { id: "review-margaret", residentId: "margaret", date: "2026-07-12", time: "11:20", meridiem: "AM", type: "Acute", status: "needs-review", priority: "High", reason: "Mild dehydration", change: "Poor intake", sections: completedDocumentSections("margaret", "Mild dehydration"), revisions: [], assignedScribe: "Mark Rivera", scribeCompletedAt: "Jul 12 · 11:44 AM" },
+  { id: "review-margaret", residentId: "margaret", date: "2026-07-12", time: "11:20", meridiem: "AM", type: "Acute", status: "clarification-requested", priority: "High", reason: "Mild dehydration", change: "Poor intake", sections: completedDocumentSections("margaret", "Mild dehydration"), revisions: [], assignedScribe: "Mark Rivera", scribeCompletedAt: null, clarificationRequest: { id: "clarification-review-margaret", sectionId: "medications", sectionLabel: "Medications", question: "Please confirm whether furosemide should remain 20 mg daily or change to 40 mg daily. The current eMAR and most recent provider plan conflict.", requestedBy: "Mark Rivera", requestedAt: "Today · 9:12 AM", routedVia: "Otangeles Operations", response: "", respondedAt: null, respondedBy: null } },
   { id: "review-yolanda", residentId: "yolanda", date: "2026-07-11", time: "2:45", meridiem: "PM", type: "Wound Care", status: "needs-review", priority: "Routine", reason: "Pressure injury follow-up", change: "Weekly review", sections: completedDocumentSections("yolanda", "Pressure injury follow-up"), revisions: [], assignedScribe: "Mark Rivera", scribeCompletedAt: "Jul 11 · 3:12 PM" },
   { id: "done-frank", residentId: "frank", date: "2026-07-10", time: "9:00", meridiem: "AM", type: "30-Day Follow Up", status: "submitted-to-billing", priority: "Routine", reason: "30-day follow-up", change: "Stable", sections: completedDocumentSections("frank", "30-day follow-up"), signedAt: "Jul 10 · 9:34 AM", signedSignature: providerSignatureSnapshot("Jul 10 · 9:34 AM") },
   { id: "done-raymond", residentId: "raymond", date: "2026-07-09", time: "10:30", meridiem: "AM", type: "Wound Care", status: "submitted-to-billing", priority: "Routine", reason: "Wound follow-up", change: "Improving", sections: completedDocumentSections("raymond", "Wound follow-up"), signedAt: "Jul 9 · 11:02 AM", signedSignature: providerSignatureSnapshot("Jul 9 · 11:02 AM") },
@@ -578,14 +578,14 @@ export const initialTimelineEvents = [
     status: action.status,
   })),
   ...initialEncounters
-    .filter((encounter) => ["needs-review", "revision", "submitted-to-billing"].includes(encounter.status))
+    .filter((encounter) => ["needs-review", "clarification-requested", "revision", "clarification-response-sent", "submitted-to-billing"].includes(encounter.status))
     .map((encounter) => ({
       id: `provider-note-${encounter.id}`,
       residentId: encounter.residentId,
       kind: "provider-note",
-      title: encounter.status === "submitted-to-billing" ? "Provider note signed" : encounter.status === "revision" ? "Provider note revision requested" : "Provider note ready for review",
-      text: providerNoteText(encounter),
-      actor: "Dr. Hannah Cole",
+      title: encounter.status === "submitted-to-billing" ? "Provider note signed" : encounter.status === "revision" ? "Provider note revision requested" : encounter.status === "clarification-requested" ? "Scribe clarification requested" : encounter.status === "clarification-response-sent" ? "Clarification response sent" : "Provider note ready for review",
+      text: encounter.clarificationRequest?.question ?? providerNoteText(encounter),
+      actor: encounter.status === "clarification-requested" ? encounter.clarificationRequest.requestedBy : "Dr. Hannah Cole",
       displayTime: encounter.signedAt ?? encounter.scribeCompletedAt ?? `${encounter.date} · ${encounter.time} ${encounter.meridiem}`,
       occurredAt: encounterTimestamp(encounter),
       sourceType: "encounter",
